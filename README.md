@@ -1,6 +1,6 @@
 # RoleLinked
 
-**A local-first AI career command center for discovering roles, preparing truthful applications, tracking the hiring pipeline, and practicing for interviews.**
+**An AI career command center for discovering roles, preparing truthful applications, tracking the hiring pipeline, and practicing for interviews — on the hosted service or on your own computer.**
 
 RoleLinked keeps the candidate in control: it can research, organize, score, and draft, but it never submits an application or sends a message without the user taking the final action.
 
@@ -19,6 +19,18 @@ Job searching usually splits information across job boards, spreadsheets, resume
 - prepare company-specific interview plans and reusable STAR stories;
 - run locally with Claude Code, Codex, and other supported agent CLIs;
 - require human approval before any external application or communication action.
+
+## Two ways to use RoleLinked
+
+| Edition | Best for | Data and execution |
+|---|---|---|
+| Hosted at `rolelinked.com` | People who want to create an account and start immediately | Clerk-authenticated, tenant-isolated cloud storage and background workers; free beta with fair-use safeguards |
+| Self-hosted/local | People who want maximum privacy, customization, and control | Files, resumes, CLIs, and model credentials stay on the user's machine |
+
+The hosted edition will use the same product language and core workflows, but it
+will not expose the local filesystem or spawn user-controlled CLI commands on a
+shared server. See [docs/HOSTED_ARCHITECTURE.md](docs/HOSTED_ARCHITECTURE.md)
+and [docs/HOSTED_DEPLOYMENT.md](docs/HOSTED_DEPLOYMENT.md).
 
 ## Privacy model
 
@@ -100,6 +112,10 @@ reports/              Private evaluations (ignored)
 output/               Private generated artifacts (ignored)
 interview-prep/       Private interview material (ignored)
 ```
+
+The current public codebase is the verified local-first foundation. Hosted
+multi-user work is being introduced behind explicit storage, identity,
+scheduler, and AI-provider interfaces so local mode remains fully supported.
 
 ## Contributing
 

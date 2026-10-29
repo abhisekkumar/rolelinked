@@ -133,6 +133,13 @@ plugins.lock
 # Generated
 .resolved-prompt-*
 node_modules
+.next/
+dist/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 bun.lock
 # Working copy the test suite makes under the repo root (test-all.mjs
 # `mkdtempSync(join(ROOT, '.tmp-script-test-'))`). A clean run deletes it; a

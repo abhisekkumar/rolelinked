@@ -21,6 +21,15 @@ import { NAV_ITEMS, isActivePath } from "@/lib/nav-items";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
+  // Public product pages intentionally sit outside the local command-center
+  // chrome. Keeping the exception here avoids duplicating the root providers
+  // while the hosted app and its authenticated route group are introduced in
+  // stages. The local dashboard remains unchanged at `/`.
+  if (pathname === "/welcome" || pathname.startsWith("/welcome/")) {
+    return <>{children}</>;
+  }
+
   return (
     <JobsProvider>
       <PipelineProvider>

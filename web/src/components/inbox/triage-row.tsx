@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { Bookmark, BookmarkCheck, Loader2, X } from "lucide-react";
 import type { InboxJob } from "@/lib/career-ops";
-import type { AtsSource } from "@/lib/explore";
-import { ATS_LABEL } from "@/lib/explore";
+import type { ExploreSource } from "@/lib/explore";
+import { SOURCE_LABEL } from "@/lib/explore";
 import { Badge } from "@/components/ui/badge";
 import { CompanyLogo } from "@/components/company-logo";
 import { cn } from "@/lib/cn";
@@ -35,7 +35,7 @@ export function TriageRow({
   onSkip,
 }: {
   job: InboxJob;
-  source: AtsSource | null;
+  source: ExploreSource | null;
   age: number | null;
   scored?: RowScore;
   selected: boolean;
@@ -73,7 +73,7 @@ export function TriageRow({
         </p>
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-faint">
           {job.location && <span className="truncate">{job.location}</span>}
-          {source && <span className="rounded bg-surface-hover px-1 py-px font-medium text-muted">{ATS_LABEL[source]}</span>}
+          {source && <span className="rounded bg-surface-hover px-1 py-px font-medium text-muted">{SOURCE_LABEL[source]}</span>}
           {ago && <span>{ago}</span>}
           {/* 🔴 CRUDA: honest "not scored" — no fabricated match%. */}
           {!evaluated && <span className="italic text-muted">not scored</span>}

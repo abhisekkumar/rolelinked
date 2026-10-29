@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { careerOpsRoot, rootScript } from "@/lib/career-ops";
+import { careerOpsCodeRoot, careerOpsRoot, readInbox, rootScript } from "@/lib/career-ops";
 import type { DiscoveredOffer } from "./scan";
 
 /**
@@ -20,8 +20,10 @@ import type { DiscoveredOffer } from "./scan";
 export type AddResult = { added: number; error?: string };
 
 export function addOffersToPipeline(offers: DiscoveredOffer[]): Promise<AddResult> {
+  const existingUrls = new Set(readInbox().map((job) => job.url));
   const clean = offers
     .filter((o) => o && typeof o.url === "string" && /^https?:\/\//i.test(o.url))
+    .filter((o) => !existingUrls.has(o.url))
     .map((o) => ({
       url: o.url,
       company: o.company || "",
@@ -41,7 +43,7 @@ export function addOffersToPipeline(offers: DiscoveredOffer[]): Promise<AddResul
   }
 
   const scanUrl = pathToFileURL(rootScript("scan")).href;
-  const localTodayUrl = pathToFileURL(path.join(careerOpsRoot(), "lib", "local-today.mjs")).href;
+  const localTodayUrl = pathToFileURL(path.join(careerOpsCodeRoot(), "lib", "local-today.mjs")).href;
   const code = `
 import { appendToPipeline, appendToScanHistory } from ${JSON.stringify(scanUrl)};
 import { localToday } from ${JSON.stringify(localTodayUrl)};
@@ -74,12 +76,21 @@ process.stdin.on("end", async () => {
     child.stdout.on("data", (d: Buffer) => (out += d.toString()));
     child.stderr.on("data", (d: Buffer) => (err += d.toString()));
     child.on("error", (e) => resolve({ added: 0, error: e instanceof Error ? e.message : "spawn failed" }));
-    child.on("close", () => {
+    child.on("close", (code, signal) => {
+      const stdout = out.trim();
+      if (!stdout) {
+        const detail = err.trim().slice(0, 500);
+        resolve({
+          added: 0,
+          error: detail || `pipeline writer exited without a response${signal ? ` (signal ${signal})` : ` (code ${code ?? "unknown"})`}`,
+        });
+        return;
+      }
       try {
-        const parsed = JSON.parse(out.trim() || "{}") as AddResult;
+        const parsed = JSON.parse(stdout) as AddResult;
         resolve({ added: parsed.added ?? 0, error: parsed.error });
       } catch {
-        resolve({ added: 0, error: err.trim().slice(0, 200) || "writer returned no result" });
+        resolve({ added: 0, error: err.trim().slice(0, 500) || `pipeline writer returned invalid JSON (code ${code ?? "unknown"})` });
       }
     });
     child.stdin.write(JSON.stringify(clean));

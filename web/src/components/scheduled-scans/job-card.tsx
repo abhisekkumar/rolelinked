@@ -8,18 +8,22 @@ import { instrumentSerif } from "@/lib/fonts";
 
 export function JobCard({
   job,
+  activeRun,
+  anyRunActive,
   onToggleStatus,
   onEdit,
   onDelete,
   onRunFinished,
 }: {
   job: ScheduledJob;
+  activeRun: boolean;
+  anyRunActive: boolean;
   onToggleStatus: (id: string, currentStatus: string) => void;
   onEdit: (job: ScheduledJob) => void;
   onDelete: (id: string) => void;
   onRunFinished: () => void;
 }) {
-  const [running, setRunning] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [runMessage, setRunMessage] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -44,12 +48,18 @@ export function JobCard({
   }, [menuOpen]);
 
   const handleRunNow = async () => {
-    setRunning(true);
+    if (anyRunActive) return;
+    setSubmitting(true);
     setRunMessage(null);
 
     try {
       const res = await fetch(`/api/scheduled-jobs/${job.id}/run`, { method: "POST" });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 409 && data.code === "already-running") {
+        setRunMessage(" A scheduled scan is already running. Wait for it to finish.");
+        onRunFinished();
+        return;
+      }
       if (!res.ok) throw new Error(data.error || "Run failed");
 
       setRunMessage(` Completed! Found ${data.rolesFound || 0} matching roles.`);
@@ -57,7 +67,7 @@ export function JobCard({
     } catch (err) {
       setRunMessage(` Error: ${err instanceof Error ? err.message : "Run failed"}`);
     } finally {
-      setRunning(false);
+      setSubmitting(false);
     }
   };
 
@@ -166,7 +176,12 @@ export function JobCard({
 
         {/* Last Run & Status Message */}
         <div className="text-[12px]">
-          {job.lastError ? (
+          {activeRun ? (
+            <p className="flex items-center gap-1.5 text-brand" role="status">
+              <Loader2 className="size-3.5 shrink-0 animate-spin" />
+              Scan in progress…
+            </p>
+          ) : job.lastError ? (
             <p className="flex items-start gap-1.5 text-rose-500">
               <AlertCircle className="mt-0.5 size-3 shrink-0" />
               <span className="truncate">Last error: {job.lastError}</span>
@@ -189,11 +204,12 @@ export function JobCard({
         <button
           type="button"
           onClick={handleRunNow}
-          disabled={running}
+          disabled={submitting || anyRunActive}
+          title={activeRun ? "This scan is already running" : anyRunActive ? "Another scheduled scan is running" : "Run this scan now"}
           className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-brand/30 px-2.5 py-2 text-xs font-medium text-brand transition-colors hover:bg-brand-soft disabled:opacity-50 max-sm:min-h-[44px]"
         >
-          {running ? <Loader2 className="size-3.5 animate-spin" /> : <Zap className="size-3.5" />}
-          {running ? "Scanning…" : "Run now"}
+          {submitting || activeRun ? <Loader2 className="size-3.5 animate-spin" /> : <Zap className="size-3.5" />}
+          {submitting || activeRun ? "Scanning…" : anyRunActive ? "Another scan running" : "Run now"}
         </button>
 
         <button

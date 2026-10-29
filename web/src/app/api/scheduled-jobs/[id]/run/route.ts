@@ -3,7 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { getScheduledJob } from "@/lib/scheduled-jobs";
-import { isSafeScheduledId } from "@/lib/scheduled-jobs-store.mjs";
+import { careerOpsRoot } from "@/lib/career-ops";
+import { isSafeScheduledId, readLockStatus } from "@/lib/scheduled-jobs-store.mjs";
+import { scheduledRunnerResourcePath, scheduledStorePath } from "@/lib/scheduled-runner-path.mjs";
 import { resolveCodeRoot } from "@/lib/core/code-root.mjs";
 
 export const runtime = "nodejs";
@@ -84,14 +86,28 @@ export async function POST(_req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Scheduled job runner is not installed." }, { status: 404 });
   }
 
+  const runnerResource = scheduledRunnerResourcePath(scheduledStorePath(careerOpsRoot()));
+  const runnerLock = readLockStatus(runnerResource);
+  if (runnerLock.active && !runnerLock.stale) {
+    return NextResponse.json(
+      { error: "A scheduled scan is already running. Wait for it to finish before starting another.", code: "already-running" },
+      { status: 409 },
+    );
+  }
+
   const result = await runJob(runner, id);
   if (result.timedOut) {
     return NextResponse.json({ error: "Scheduled scan timed out." }, { status: 504 });
   }
   if (result.code !== 0) {
     const message = result.stderr.split(/\r?\n/).find(Boolean)?.slice(0, 300) || "Scan failed.";
-    const status = /lock timeout/i.test(message) ? 409 : 500;
-    return NextResponse.json({ error: message }, { status });
+    if (/lock timeout/i.test(message)) {
+      return NextResponse.json(
+        { error: "A scheduled scan is already running. Wait for it to finish before starting another.", code: "already-running" },
+        { status: 409 },
+      );
+    }
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
   try {

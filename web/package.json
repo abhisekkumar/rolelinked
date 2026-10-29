@@ -1,11 +1,11 @@
 {
-  "name": "@career-ops/web",
-  "version": "0.13.0",
+  "name": "@rolelinked/web",
+  "version": "0.1.0",
   "private": true,
-  "description": "Official web experience for career-ops — local-first.",
+  "description": "Local-first RoleLinked web dashboard.",
   "scripts": {
     "dev": "node server.mjs dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "node server.mjs start",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test \"tests/**/*.test.mjs\""

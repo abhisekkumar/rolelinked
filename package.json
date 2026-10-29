@@ -1,7 +1,7 @@
 {
-  "name": "career-ops",
-  "version": "1.35.0",
-  "description": "Open-source AI job search that runs locally in your AI coding CLI: scan job portals, evaluate listings into a structured A-H report with a 1-5 score, tailor your CV, track applications",
+  "name": "rolelinked",
+  "version": "0.1.0",
+  "description": "Local-first AI career command center for role discovery, truthful application preparation, pipeline tracking, and interview practice",
   "private": true,
   "engines": {
     "node": ">=18.17"
@@ -29,10 +29,10 @@
     "test:cv-visual": "playwright test --config=playwright.cv.config.mjs",
     "test:cv-visual:update": "playwright test --config=playwright.cv.config.mjs --update-snapshots",
     "sync-check": "node cv-sync-check.mjs",
-    "update:check": "node update-system.mjs check",
+    "career-ops:update:check": "node update-system.mjs check",
     "update:test": "node updater-migration-tests.mjs",
-    "update": "node update-system.mjs apply --confirm",
-    "rollback": "node update-system.mjs rollback",
+    "career-ops:update:unsafe": "node update-system.mjs apply --confirm",
+    "career-ops:rollback": "node update-system.mjs rollback",
     "liveness": "node check-liveness.mjs",
     "extract": "node browser-extract.mjs",
     "scan:hn": "node scan-hn.mjs",
@@ -42,6 +42,9 @@
     "scan:yc": "node scan-ats-full.mjs --seeds yc",
     "scan:interamt": "node scan-interamt.mjs",
     "scan:dayforce": "node scan-dayforce.mjs",
+    "scan:boards": "node scan-explore-boards.mjs",
+    "linkedin:import": "node linkedin-jobs-import.mjs --summary",
+    "linkedin:import:self-test": "node linkedin-jobs-import.mjs --self-test",
     "company:funded": "node company-funded.mjs",
     "validate:portals": "node validate-portals.mjs",
     "verify:portals": "node verify-portals.mjs",
@@ -80,8 +83,7 @@
     "claude-code",
     "opencode",
     "career",
-    "career-ops",
-    "careerops",
+    "rolelinked",
     "automation",
     "codex",
     "antigravity",
@@ -91,12 +93,11 @@
     "grok",
     "ai-agent-skill"
   ],
-  "author": "Santiago Fernández de Valderrama <hi@santifer.io> (https://santifer.io)",
-  "homepage": "https://career-ops.org",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/career-ops-hq/career-ops"
-  },
+  "author": "RoleLinked contributors",
+  "contributors": [
+    "Santiago Fernández de Valderrama and Career Ops contributors (upstream)"
+  ],
+  "homepage": "https://rolelinked.com",
   "license": "MIT",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

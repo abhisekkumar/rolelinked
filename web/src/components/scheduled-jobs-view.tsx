@@ -14,6 +14,7 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
+import { scanSuccessLabel } from "@/lib/scan-success.mjs";
 import { CreateJobModal } from "./scheduled-scans/create-job-modal";
 import { EditJobModal } from "./scheduled-scans/edit-job-modal";
 import { JobCard } from "./scheduled-scans/job-card";
@@ -49,8 +50,8 @@ export function ScheduledJobsView() {
   const [osRunning, setOsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (quiet = false) => {
+    if (!quiet) setLoading(true);
     setError(null);
     try {
       const [jobsResponse, schedulerResponse] = await Promise.all([
@@ -69,13 +70,21 @@ export function ScheduledJobsView() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not load scheduled scans.");
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   };
 
   useEffect(() => {
     void loadData();
   }, []);
+
+  // Full sweeps can take several minutes. Refresh quietly while the runner is
+  // active so the card leaves "Scanning…" as soon as the scan finishes.
+  useEffect(() => {
+    if (!scheduler?.running) return;
+    const timer = window.setInterval(() => void loadData(true), 5_000);
+    return () => window.clearInterval(timer);
+  }, [scheduler?.running]);
 
   const handleToggleStatus = async (id: string, currentStatus: string) => {
     const nextStatus = currentStatus === "active" ? "paused" : "active";
@@ -139,7 +148,8 @@ export function ScheduledJobsView() {
   const successRuns = store.runs.filter((r) => r.state === "success").length;
   const failedRuns = store.runs.filter((r) => r.state === "failed").length;
   const totalRolesFound = store.runs.reduce((acc, r) => acc + (r.rolesFound || 0), 0);
-  const successRate = totalRuns > 0 ? Math.round((successRuns / totalRuns) * 100) : 100;
+  const successRate = scanSuccessLabel(totalRuns, successRuns);
+  const supportsOsScheduler = scheduler?.platform === "win32" || scheduler?.platform === "darwin";
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-8 md:px-8 space-y-8">
@@ -174,7 +184,7 @@ export function ScheduledJobsView() {
           </button>
           <button
             type="button"
-            onClick={loadData}
+            onClick={() => void loadData()}
             disabled={loading}
             className="inline-flex size-9 items-center justify-center rounded-full border border-border bg-surface/60 text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
             title="Refresh list"
@@ -190,7 +200,7 @@ export function ScheduledJobsView() {
         <StatCard label="Active Scans" value={activeJobs.length} subtitle={`${jobsList.length} total jobs`} icon={<Zap className="size-4 text-emerald-500" />} />
         <StatCard label="Executed Runs" value={totalRuns} subtitle={`${successRuns} successful`} icon={<Layers className="size-4 text-brand" />} />
         <StatCard label="Roles Discovered" value={totalRolesFound} subtitle="Pushed to pipeline" icon={<Sparkles className="size-4 text-amber-500" />} />
-        <StatCard label="Success Rate" value={`${successRate}%`} subtitle={`${failedRuns} failed runs`} icon={<CheckCircle2 className="size-4 text-emerald-500" />} />
+        <StatCard label="Success Rate" value={successRate} subtitle={`${failedRuns} failed runs`} icon={<CheckCircle2 className="size-4 text-emerald-500" />} />
       </div>
 
       {/* OS Task Scheduler Banner */}
@@ -203,7 +213,11 @@ export function ScheduledJobsView() {
               </div>
               <div>
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  {scheduler.platform === "win32" ? "Windows Task Scheduler Integration" : "Manual scans"}
+                  {scheduler.platform === "win32"
+                    ? "Windows Task Scheduler Integration"
+                    : scheduler.platform === "darwin"
+                      ? "macOS LaunchAgent Integration"
+                      : "Manual scans"}
                   <span
                     className={
                       scheduler.task.exists && scheduler.task.enabled
@@ -211,7 +225,7 @@ export function ScheduledJobsView() {
                         : "rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300"
                     }
                   >
-                    {scheduler.platform !== "win32"
+                    {!supportsOsScheduler
                       ? "No automatic schedule"
                       : scheduler.task.exists
                         ? scheduler.task.enabled ? "Task enabled" : "Task disabled"
@@ -219,15 +233,19 @@ export function ScheduledJobsView() {
                   </span>
                 </div>
                 <div className="mt-0.5 text-xs text-muted">
-                  {scheduler.platform !== "win32"
-                    ? "On macOS and Linux, saved scans only run when you choose Run now."
+                  {!supportsOsScheduler
+                    ? "On Linux, saved scans run when you choose Run now unless you configure a system service."
+                    : scheduler.platform === "darwin"
+                      ? scheduler.task.exists && scheduler.task.enabled
+                        ? "LaunchAgent checks for due scans every 15 minutes and after login."
+                        : "Install it with: node web/scripts/install-scan-schedule-macos.mjs"
                     : scheduler.task.exists
                       ? "Next OS check: " + formatTaskTime(scheduler.task.nextRun) + " · Last OS check: " + formatTaskTime(scheduler.task.lastRun)
                       : "Install the Windows task with web/scripts/install-scan-schedule.ps1 to run due jobs automatically."}
                 </div>
               </div>
             </div>
-            {scheduler.platform === "win32" && <button
+            {supportsOsScheduler && <button
               type="button"
               onClick={handleTriggerOsScheduler}
               disabled={osRunning || scheduler.running || !scheduler.available}
@@ -304,10 +322,12 @@ export function ScheduledJobsView() {
             <JobCard
               key={job.id}
               job={job}
+              activeRun={store.runs.some((run) => run.jobId === job.id && run.state === "running")}
+              anyRunActive={scheduler?.running === true}
               onToggleStatus={handleToggleStatus}
               onEdit={(j) => setEditingJob(j)}
               onDelete={handleDelete}
-              onRunFinished={loadData}
+              onRunFinished={() => void loadData()}
             />
           ))}
         </div>
@@ -317,14 +337,14 @@ export function ScheduledJobsView() {
       <CreateJobModal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        onCreated={loadData}
+        onCreated={() => void loadData()}
       />
 
       <EditJobModal
         job={editingJob}
         isOpen={!!editingJob}
         onClose={() => setEditingJob(null)}
-        onUpdated={loadData}
+        onUpdated={() => void loadData()}
       />
 
       <RunHistoryDrawer

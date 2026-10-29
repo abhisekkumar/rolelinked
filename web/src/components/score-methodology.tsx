@@ -28,13 +28,13 @@ export function ScoreMethodology() {
   return (
     <details className="group mt-10 overflow-hidden rounded-2xl border border-border bg-surface/30">
       <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3.5 text-sm font-medium transition-colors hover:bg-surface-hover">
-        How career-ops scored this — and why it&apos;s for <span className="text-landing">you</span>
+        How RoleLinked scored this — and why it&apos;s for <span className="text-landing">you</span>
         <ChevronDown className="ml-auto size-4 text-faint transition-transform group-open:rotate-180" />
       </summary>
       <div className="space-y-5 border-t border-border px-5 py-4 text-sm">
         <p className="text-muted">
           Every role is scored <strong className="text-foreground">1.0–5.0</strong> across six dimensions.{" "}
-          <strong className="text-brand">4.0</strong> is the apply / don&apos;t-apply line — below it, career-ops
+          <strong className="text-brand">4.0</strong> is the apply / don&apos;t-apply line — below it, RoleLinked
           recommends against applying.
         </p>
         <div>
@@ -67,7 +67,7 @@ export function ScoreMethodology() {
           aria-label="Full methodology (opens in a new tab)"
           className="inline-flex min-h-[24px] items-center gap-1 text-xs text-brand transition-colors hover:underline max-sm:min-h-[44px]"
         >
-          Full methodology <ExternalLink className="size-3" aria-hidden="true" />
+          Upstream Career Ops methodology <ExternalLink className="size-3" aria-hidden="true" />
         </a>
       </div>
     </details>

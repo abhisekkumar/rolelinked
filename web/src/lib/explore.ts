@@ -13,6 +13,20 @@ export const ATS_LABEL: Record<AtsSource, string> = {
   workday: "Workday",
 };
 
+export type BoardSource = "builtin" | "remoteok" | "remotive" | "weworkremotely" | "himalayas" | "jobicy";
+export const BOARD_SOURCES: BoardSource[] = ["builtin", "remoteok", "remotive", "weworkremotely", "himalayas", "jobicy"];
+export const BOARD_LABEL: Record<BoardSource, string> = {
+  builtin: "Built In",
+  remoteok: "RemoteOK",
+  remotive: "Remotive",
+  weworkremotely: "We Work Remotely",
+  himalayas: "Himalayas",
+  jobicy: "Jobicy",
+};
+export type ExploreSource = AtsSource | BoardSource;
+export const EXPLORE_SOURCES: ExploreSource[] = [...ATS_SOURCES, ...BOARD_SOURCES];
+export const SOURCE_LABEL: Record<ExploreSource, string> = { ...ATS_LABEL, ...BOARD_LABEL };
+
 /** The full UI filter state. The keyword/location lists mirror scan.mjs's
  *  buildTitleFilter / buildLocationFilter semantics; sinceDays/ats/limitPerAts map
  *  to scan-ats-full.mjs's --since / --ats / --limit. */
@@ -25,6 +39,7 @@ export type ExploreFilters = {
   alwaysAllow: string[];
   sinceDays: number;
   ats: AtsSource[];
+  boards: BoardSource[];
   limitPerAts: number;
 };
 
@@ -37,6 +52,7 @@ export const DEFAULT_FILTERS: ExploreFilters = {
   alwaysAllow: [],
   sinceDays: 7,
   ats: [...ATS_SOURCES],
+  boards: [...BOARD_SOURCES],
   limitPerAts: 150,
 };
 
@@ -126,6 +142,17 @@ function cleanAts(v: unknown): AtsSource[] {
   return out.length ? Array.from(new Set(out)) : [...ATS_SOURCES];
 }
 
+function cleanBoards(v: unknown): BoardSource[] {
+  if (!Array.isArray(v)) return [...BOARD_SOURCES];
+  return Array.from(
+    new Set(
+      v
+        .map((source) => String(source).toLowerCase())
+        .filter((source): source is BoardSource => (BOARD_SOURCES as string[]).includes(source)),
+    ),
+  );
+}
+
 /** Apply a (possibly partial) action/assistant patch onto a base. The assistant
  *  emits {positive,negative,allow,block,alwaysAllow,since,ats,limit}. With
  *  merge=true, list fields are ADDED to the base; otherwise the given fields
@@ -135,7 +162,7 @@ export function parseExplorePatch(
   base: ExploreFilters = DEFAULT_FILTERS,
   merge = false,
 ): ExploreFilters {
-  const next: ExploreFilters = { ...base, ats: [...base.ats] };
+  const next: ExploreFilters = { ...base, ats: [...base.ats], boards: [...base.boards] };
   const lists: [keyof ExploreFilters, string][] = [
     ["positive", "positive"],
     ["negative", "negative"],
@@ -154,6 +181,7 @@ export function parseExplorePatch(
   if (raw.limit !== undefined) next.limitPerAts = clampNum(raw.limit, 50, 500, base.limitPerAts);
   if (raw.limitPerAts !== undefined) next.limitPerAts = clampNum(raw.limitPerAts, 50, 500, base.limitPerAts);
   if (raw.ats !== undefined) next.ats = cleanAts(raw.ats);
+  if (raw.boards !== undefined) next.boards = cleanBoards(raw.boards);
   return next;
 }
 
@@ -168,12 +196,14 @@ export function filtersToParams(f: ExploreFilters): string {
   if (f.alwaysAllow.length) sp.set("home", f.alwaysAllow.join(","));
   if (f.sinceDays !== DEFAULT_FILTERS.sinceDays) sp.set("since", String(f.sinceDays));
   if (f.ats.length !== ATS_SOURCES.length) sp.set("ats", f.ats.join(","));
+  if (f.boards.length !== BOARD_SOURCES.length) sp.set("boards", f.boards.length ? f.boards.join(",") : "none");
   if (f.limitPerAts !== DEFAULT_FILTERS.limitPerAts) sp.set("limit", String(f.limitPerAts));
   return sp.toString();
 }
 
 export function paramsToFilters(sp: URLSearchParams, base: ExploreFilters = DEFAULT_FILTERS): ExploreFilters {
   const split = (s: string | null) => (s ? s.split(",") : undefined);
+  const splitBoards = (s: string | null) => (s === "none" ? [] : split(s));
   return parseExplorePatch(
     {
       positive: split(sp.get("q")),
@@ -184,6 +214,7 @@ export function paramsToFilters(sp: URLSearchParams, base: ExploreFilters = DEFA
       alwaysAllow: split(sp.get("home")),
       since: sp.get("since") ?? undefined,
       ats: split(sp.get("ats")),
+      boards: splitBoards(sp.get("boards")),
       limit: sp.get("limit") ?? undefined,
     },
     base,

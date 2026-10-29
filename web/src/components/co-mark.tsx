@@ -1,9 +1,7 @@
 import { instrumentSerif } from "@/lib/fonts";
 
-// Brand mark — lowercase "co" on brand orange in Instrument Serif. Matches the
-// favicon (src/app/icon.tsx) and the career-ops-docs home one-for-one so the
-// app reads as a sibling. Dual meaning: "co" of career-ops AND "co" of
-// companies — the word the manifesto inverts ("…AI to choose companies").
+// RoleLinked mark. The component name remains CoMark temporarily so downstream
+// extensions importing it do not break during the compatibility transition.
 export function CoMark({ size = 28 }: { size?: number }) {
   return (
     <span
@@ -18,7 +16,7 @@ export function CoMark({ size = 28 }: { size?: number }) {
         paddingBottom: Math.round(size * 0.08),
       }}
     >
-      co
+      rl
     </span>
   );
 }

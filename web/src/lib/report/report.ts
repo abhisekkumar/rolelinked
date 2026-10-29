@@ -1,6 +1,6 @@
 import { recentLogs } from "./logbuf";
 
-const REPO = "career-ops-hq/career-ops";
+const REPO = process.env.NEXT_PUBLIC_ROLELINKED_REPO || "";
 
 /** Strip PII / secrets that could ride in error text, paths or logs BEFORE anything
  *  leaves the machine. Defence-in-depth — the user also reviews the full payload
@@ -162,6 +162,7 @@ export function issueBody(d: Diag, description: string): string {
 }
 
 export function issueUrl(d: Diag, description: string): string {
+  if (!REPO) return "#";
   const title = `[web ${d.channel}] ${(scrub(description) || "bug report").replace(/\s+/g, " ").trim().slice(0, 70)}`;
   const params = new URLSearchParams({ title, body: issueBody(d, description), labels: "web-alpha,area:web" });
   return `https://github.com/${REPO}/issues/new?${params.toString()}`;

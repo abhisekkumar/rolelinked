@@ -1,4 +1,20 @@
-# Career-Ops -- AI Job Search Pipeline
+# RoleLinked -- Local-First AI Career Command Center
+
+## Distribution override (CRITICAL)
+
+RoleLinked is an independent MIT-licensed derivative of Career Ops. Preserve
+the upstream attribution in `LICENSE` and `NOTICE.md`; never imply that
+RoleLinked was written entirely from scratch or is endorsed by Career Ops.
+
+Do **not** run `update-system.mjs apply` as a normal RoleLinked update. That
+Career Ops updater can replace RoleLinked system-layer files, branding, and
+features. Upstream changes must be reviewed and merged through Git according
+to `docs/UPSTREAM_SYNC.md`. The legacy updater scripts remain only as explicit
+compatibility tools under the `career-ops:*` npm script namespace.
+
+The product-facing name is RoleLinked. Existing `CAREER_OPS_*` environment
+variables and internal compatibility identifiers remain supported so current
+user data and integrations continue to work.
 
 ## Origin
 

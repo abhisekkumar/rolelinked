@@ -13,7 +13,7 @@ type SimilarIssue = { number: number; title: string; url: string };
 // ours. The search itself lives in lib/beta/issue-search.mjs, which returns
 // null when it could NOT run rather than folding that into an empty array —
 // see that file for the two days of silent false negatives that cost us.
-const REPO = "career-ops-hq/career-ops";
+const REPO = process.env.NEXT_PUBLIC_ROLELINKED_REPO || "";
 const findSimilar = (q: string) => searchIssues(q, REPO, fetch);
 
 // Beta/RC differentiator: a small version+channel pill (only on a pre-release
@@ -92,9 +92,11 @@ export function BetaBanner() {
           <span className="size-1.5 animate-pulse rounded-full bg-brand" /> {meta.version} · {meta.channel}
         </span>
         {meta.sha && <span className="hidden font-mono text-faint sm:inline">{meta.sha}</span>}
-        <button onClick={openReport} className="ml-1 inline-flex items-center justify-center gap-1 rounded-full bg-brand-soft px-2 py-0.5 font-medium text-brand-text transition-colors hover:bg-brand/15 max-sm:min-h-[44px]">
-          <Bug className="size-3" /> Report a bug
-        </button>
+        {REPO && (
+          <button onClick={openReport} className="ml-1 inline-flex items-center justify-center gap-1 rounded-full bg-brand-soft px-2 py-0.5 font-medium text-brand-text transition-colors hover:bg-brand/15 max-sm:min-h-[44px]">
+            <Bug className="size-3" /> Report a bug
+          </button>
+        )}
       </div>
 
       {open && diag && (

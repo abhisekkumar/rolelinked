@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { careerOpsRoot } from "@/lib/career-ops";
@@ -9,6 +10,7 @@ import { scheduledRunnerResourcePath, scheduledStorePath } from "./scheduled-run
 
 const execFileAsync = promisify(execFile);
 const TASK_NAME = "career-ops recurring scan";
+const MAC_LABEL = "com.rolelinked.recurring-scan";
 
 export type SchedulerStatus = {
   platform: NodeJS.Platform;
@@ -24,6 +26,22 @@ export type SchedulerStatus = {
 };
 
 async function readTask(): Promise<SchedulerStatus["task"]> {
+  if (process.platform === "darwin") {
+    const plistPath = path.join(os.homedir(), "Library", "LaunchAgents", `${MAC_LABEL}.plist`);
+    if (!fs.existsSync(plistPath) || typeof process.getuid !== "function") {
+      return { exists: false, enabled: false, status: null, nextRun: null, lastRun: null };
+    }
+    try {
+      await execFileAsync("/bin/launchctl", ["print", `gui/${process.getuid()}/${MAC_LABEL}`], {
+        timeout: 5_000,
+        maxBuffer: 128 * 1024,
+      });
+      return { exists: true, enabled: true, status: "loaded", nextRun: null, lastRun: null };
+    } catch {
+      return { exists: true, enabled: false, status: "not loaded", nextRun: null, lastRun: null };
+    }
+  }
+
   if (process.platform !== "win32") {
     return { exists: false, enabled: false, status: null, nextRun: null, lastRun: null };
   }

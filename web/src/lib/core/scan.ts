@@ -7,8 +7,9 @@ import { writeTempPortals, cleanupTempPortals } from "./portals";
 import { profileTargetKeywords } from "@/lib/profile-keywords.mjs";
 import { titleFit } from "@/lib/title-fit.mjs";
 import { resolveScanTimeoutMs, scanTimeoutMessage } from "./scan-timeout.mjs";
-import { ATS_LABEL, ATS_SOURCES, type AtsSource, type DiscoveredOffer, type ExploreFilters, type FitBand, type ScanEvent } from "@/lib/explore";
+import { ATS_LABEL, ATS_SOURCES, BOARD_LABEL, type AtsSource, type BoardSource, type DiscoveredOffer, type ExploreFilters, type FitBand, type ScanEvent } from "@/lib/explore";
 import { mergeScanResults, timedOutMessage } from "./scan-merge.mjs";
+import { parseScanJsonStdout } from "./scan-json.mjs";
 
 export type { DiscoveredOffer, ScanEvent, AtsSource } from "@/lib/explore";
 export { ATS_SOURCES } from "@/lib/explore";
@@ -174,6 +175,11 @@ type ScannerRun = {
   timedOut: boolean;
   /** Spawn/runtime failure message, when the child never produced a result. */
   failed?: string;
+};
+
+type BoardScanJson = {
+  offers?: JsonOffer[];
+  sources?: Array<{ id?: string; count?: number; error?: string }>;
 };
 
 /**
@@ -362,17 +368,96 @@ function runScanner(
     });
     child.on("close", () => {
       if (useJson) {
-        let j: ScanJson | null = null;
-        try {
-          j = JSON.parse(jsonOut.trim()) as ScanJson;
-        } catch {
-          j = null;
-        }
+        const j = parseScanJsonStdout(jsonOut) as ScanJson | null;
         settle({ json: j && Array.isArray(j.offers) ? j : null, timedOut });
         return;
       }
       if (outBuf.trim()) handleLine(outBuf);
       settle({ json: null, timedOut });
+    });
+  });
+}
+
+function normalizedIdentity(company: string, title: string): string {
+  return `${company}||${title}`.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/** Run the core's read-only adapter for public boards outside the reverse-ATS
+ * directories. The adapter reuses providers/*.mjs and scan.mjs's canonical
+ * filters; this web layer only streams its normalized result. */
+function runBoardScanner(
+  boards: BoardSource[],
+  filters: ExploreFilters,
+  tempPortals: string,
+  onEvent: (e: ScanEvent) => void,
+  sink: { offers: DiscoveredOffer[]; seen: Set<string> },
+  timeoutMs: number,
+  roleTargets: string[],
+): Promise<void> {
+  if (boards.length === 0) return Promise.resolve();
+  return new Promise((resolve) => {
+    for (const board of boards) onEvent({ kind: "atsStart", ats: board, companies: 1 });
+    const child = spawn(
+      process.execPath,
+      [
+        rootScript("scan-explore-boards"),
+        "--sources",
+        boards.join(","),
+        "--filters",
+        tempPortals,
+        "--user-portals",
+        path.join(careerOpsRoot(), "portals.yml"),
+        "--since",
+        String(Math.max(1, filters.sinceDays || 7)),
+      ],
+      { cwd: careerOpsRoot(), env: { ...process.env } },
+    );
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(killer);
+      resolve();
+    };
+    const killer = setTimeout(() => {
+      child.kill("SIGTERM");
+      onEvent({ kind: "log", line: `Additional boards exceeded the ${Math.round(timeoutMs / 1000)}s scan budget.` });
+    }, timeoutMs);
+
+    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
+    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+    child.on("error", (error) => {
+      onEvent({ kind: "log", line: `Additional boards could not start: ${error.message}` });
+      for (const board of boards) onEvent({ kind: "atsDone", ats: board, unreachable: 1 });
+      finish();
+    });
+    child.on("close", () => {
+      let parsed: BoardScanJson | null = null;
+      try {
+        parsed = JSON.parse(stdout) as BoardScanJson;
+      } catch {
+        if (stderr.trim()) onEvent({ kind: "log", line: stderr.trim().split(/\r?\n/).at(-1) ?? "Additional-board scan failed." });
+      }
+
+      const bySource = new Map((parsed?.sources ?? []).map((source) => [source.id, source]));
+      for (const board of boards) {
+        const state = bySource.get(board);
+        if (state?.error) onEvent({ kind: "log", line: `${BOARD_LABEL[board]}: ${state.error}` });
+        onEvent({ kind: "atsDone", ats: board, unreachable: state?.error ? 1 : 0 });
+      }
+
+      const identities = new Set(sink.offers.map((offer) => normalizedIdentity(offer.company, offer.title)));
+      for (const raw of parsed?.offers ?? []) {
+        if (!raw.company || !raw.title) continue;
+        const identity = normalizedIdentity(raw.company, raw.title);
+        if (identities.has(identity)) continue;
+        const before = sink.offers.length;
+        ingestJsonOffer(raw, raw.source || "board", filters, sink.seen, sink.offers, onEvent, roleTargets);
+        if (sink.offers.length > before) identities.add(identity);
+      }
+      finish();
     });
   });
 }
@@ -392,6 +477,10 @@ export async function runDiscovery(filters: ExploreFilters, onEvent: (e: ScanEve
   // One sink for the whole run: offers streamed live by any child land here
   // deduped by URL, and the final --json results below go through the same set.
   const sink = { offers: [] as DiscoveredOffer[], seen: new Set<string>() };
+  const appendBoards = async () => {
+    await runBoardScanner(filters.boards, filters, tempPortals, onEvent, sink, timeoutMs, roleTargets);
+    return sink.offers;
+  };
 
   try {
     if (!useJson) {
@@ -401,7 +490,7 @@ export async function runDiscovery(filters: ExploreFilters, onEvent: (e: ScanEve
       const run = await runScanner(ats, false, filters, tempPortals, onEvent, sink, timeoutMs, roleTargets);
       if (run.failed) onEvent({ kind: "error", message: run.failed });
       else if (run.timedOut) onEvent({ kind: "error", message: scanTimeoutMessage(timeoutMs) });
-      return sink.offers;
+      return await appendBoards();
     }
 
     // --json: one child per source, in parallel (see scan-merge.mjs for why).
@@ -432,7 +521,7 @@ export async function runDiscovery(filters: ExploreFilters, onEvent: (e: ScanEve
         kind: "error",
         message: timedOut.length ? timedOutMessage(timedOut.map(label), deadlineSec) : failed || NO_OUTPUT,
       });
-      return offers;
+      return await appendBoards();
     }
 
     if (timedOut.length) {
@@ -446,7 +535,7 @@ export async function runDiscovery(filters: ExploreFilters, onEvent: (e: ScanEve
       ...mergeScanResults(finished, offers.length),
       ...(incomplete.length ? { incomplete } : {}),
     });
-    return offers;
+    return await appendBoards();
   } finally {
     cleanupTempPortals(tempPortals);
   }

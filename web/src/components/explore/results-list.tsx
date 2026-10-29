@@ -11,7 +11,7 @@ import { useExplore } from "./explore-provider";
 export type EnrichedOffer = DiscoveredOffer & { inPipeline: boolean; evaluatedN?: string };
 
 export function ResultsList({ offers }: { offers: EnrichedOffer[] }) {
-  const { companiesScanned, partial, error, addToPipeline, added, mode, running } = useExplore();
+  const { companiesScanned, partial, error, addToPipeline, added, adding, addNotice, mode, running } = useExplore();
   const isAi = mode === "ai";
   const [sort, setSort] = useState<"fresh" | "company">("fresh");
   const [q, setQ] = useState("");
@@ -69,14 +69,30 @@ export function ResultsList({ offers }: { offers: EnrichedOffer[] }) {
           {addable.length > 1 && (
             <button
               type="button"
+              disabled={adding.size > 0}
               onClick={() => addToPipeline(addable)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface/40 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-brand-soft hover:text-brand"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface/40 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-brand-soft hover:text-brand disabled:cursor-wait disabled:opacity-60"
             >
-              <Plus className="size-3.5" /> Add all {addable.length}
+              <Plus className="size-3.5" /> {adding.size > 0 ? `Adding ${adding.size}…` : `Add all ${addable.length}`}
             </button>
           )}
         </div>
       </div>
+
+      {addNotice && (
+        <p
+          role="status"
+          aria-live="polite"
+          className={cn(
+            "rounded-lg border px-3 py-2 text-sm",
+            addNotice.kind === "success"
+              ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+              : "border-red-500/25 bg-red-500/10 text-red-700 dark:text-red-300",
+          )}
+        >
+          {addNotice.message}
+        </p>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {view.map((o) => (

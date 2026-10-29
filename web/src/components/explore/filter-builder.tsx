@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X, Ban, Clock, MapPin, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { ATS_LABEL, ATS_SOURCES, cleanChips, type AtsSource, type ExploreFilters } from "@/lib/explore";
+import { ATS_LABEL, ATS_SOURCES, BOARD_LABEL, BOARD_SOURCES, cleanChips, type AtsSource, type BoardSource, type ExploreFilters } from "@/lib/explore";
 
 const RECENCY = [
   { label: "24h", days: 1 },
@@ -17,8 +17,8 @@ const STYLE = `
 .co-fb__chip{display:inline-flex;align-items:center;gap:.3rem;border-radius:999px;padding:.2rem .5rem .2rem .6rem;font-size:12.5px;line-height:1.2;border:1px solid transparent}
 .co-fb__chip button{display:inline-flex;opacity:.6;transition:opacity .15s}
 .co-fb__chip button:hover{opacity:1}
-.co-fb__chip.inc{color:hsl(26 78% 42%);background:hsl(26 73% 51% / .11);border-color:hsl(26 73% 51% / .26)}
-html.dark .co-fb__chip.inc{color:hsl(26 86% 70%);background:hsl(26 80% 55% / .14);border-color:hsl(26 80% 55% / .28)}
+.co-fb__chip.inc{color:var(--color-brand);background:color-mix(in srgb,var(--color-brand) 11%,transparent);border-color:color-mix(in srgb,var(--color-brand) 26%,transparent)}
+html.dark .co-fb__chip.inc{color:#5eead4;background:rgb(20 184 166 / .14);border-color:rgb(45 212 191 / .28)}
 .co-fb__field{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;min-height:2.6rem;padding:.45rem .55rem;border-radius:.7rem}
 .co-fb__field input{flex:1;min-width:7rem;background:transparent;border:none;outline:none;font-size:13.5px;color:inherit}
 .co-fb__field input::placeholder{color:var(--co-faint,hsl(0 0% 60%))}
@@ -117,6 +117,10 @@ export function FilterBuilder({
     const next = has ? filters.ats.filter((x) => x !== a) : [...filters.ats, a];
     set({ ats: next.length ? next : filters.ats });
   };
+  const toggleBoard = (board: BoardSource) => {
+    const has = filters.boards.includes(board);
+    set({ boards: has ? filters.boards.filter((source) => source !== board) : [...filters.boards, board] });
+  };
 
   return (
     <div className="space-y-4">
@@ -195,6 +199,31 @@ export function FilterBuilder({
             })}
           </div>
         </div>
+      </div>
+
+      <div>
+        <Label hint="public feeds · zero tokens">Additional boards</Label>
+        <div className="flex flex-wrap gap-1.5">
+          {BOARD_SOURCES.map((board) => {
+            const on = filters.boards.includes(board);
+            return (
+              <button
+                key={board}
+                type="button"
+                onClick={() => toggleBoard(board)}
+                className={cn(
+                  "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors max-sm:min-h-[44px]",
+                  on ? "border-brand/40 bg-brand-soft text-brand" : "border-border text-muted hover:text-foreground",
+                )}
+              >
+                {BOARD_LABEL[board]}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1.5 text-[11px] text-faint">
+          LinkedIn is login-protected. Use AI search or the private offline export importer instead of scraping a signed-in session.
+        </p>
       </div>
 
       <button

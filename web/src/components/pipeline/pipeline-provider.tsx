@@ -49,6 +49,18 @@ export function PipelineProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("focus", onFocus);
   }, [refetch]);
 
+  // Explore writes selected roles server-side, then emits this local event.
+  // This provider owns a client snapshot above both routes, so router.refresh()
+  // alone cannot replace it when the user opens Pipeline immediately afterward.
+  useEffect(() => {
+    const onJobDone = (event: Event) => {
+      const detail = (event as CustomEvent<{ kind?: string }>).detail;
+      if (detail?.kind === "explore-add") refetch();
+    };
+    window.addEventListener("co-job-done", onJobDone);
+    return () => window.removeEventListener("co-job-done", onJobDone);
+  }, [refetch]);
+
   return (
     <PipelineContext.Provider value={{ inbox, applications, loading, refetch }}>
       {children}

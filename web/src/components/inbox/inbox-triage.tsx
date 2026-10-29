@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Undo2 } from "lucide-react";
 import { useJobs } from "@/components/jobs/job-store";
 import type { InboxJob } from "@/lib/career-ops";
-import type { AtsSource } from "@/lib/explore";
-import { ATS_SOURCES } from "@/lib/explore";
+import type { ExploreSource } from "@/lib/explore";
+import { EXPLORE_SOURCES } from "@/lib/explore";
 import { daysSince, seniorityFromTitle, sourceFromUrl, SENIORITY_ORDER, type Seniority } from "@/lib/inbox";
 import { FacetChips } from "./facet-chips";
 import { TriageRow, type RowScore } from "./triage-row";
@@ -31,7 +31,7 @@ export function InboxTriage({ inbox }: { inbox: InboxJob[] }) {
 
   // facets
   const [within, setWithin] = useState<number | null>(null);
-  const [sources, setSources] = useState<Set<AtsSource>>(() => new Set());
+  const [sources, setSources] = useState<Set<ExploreSource>>(() => new Set());
   const [seniorities, setSeniorities] = useState<Set<Seniority>>(() => new Set());
   const [locQ, setLocQ] = useState("");
   const [kw, setKw] = useState("");
@@ -93,7 +93,7 @@ export function InboxTriage({ inbox }: { inbox: InboxJob[] }) {
   // triages once (and Save/Skip/score, all keyed by URL, act on it coherently).
   const enriched = useMemo(() => {
     const seen = new Set<string>();
-    const out: { job: InboxJob; source: AtsSource | null; seniority: Seniority | null; age: number | null }[] = [];
+    const out: { job: InboxJob; source: ExploreSource | null; seniority: Seniority | null; age: number | null }[] = [];
     for (const job of inbox) {
       if (seen.has(job.url)) continue;
       seen.add(job.url);
@@ -119,9 +119,9 @@ export function InboxTriage({ inbox }: { inbox: InboxJob[] }) {
 
   // facet options — only surface what's actually present in the (non-hidden) data
   const availSources = useMemo(() => {
-    const set = new Set<AtsSource>();
+    const set = new Set<ExploreSource>();
     for (const e of enriched) if (e.source && !hidden.includes(e.job.url)) set.add(e.source);
-    return ATS_SOURCES.filter((s) => set.has(s));
+    return EXPLORE_SOURCES.filter((s) => set.has(s));
   }, [enriched, hidden]);
   const availSeniorities = useMemo(() => {
     const set = new Set<Seniority>();

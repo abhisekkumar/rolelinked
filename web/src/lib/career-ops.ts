@@ -47,6 +47,11 @@ export function careerOpsRoot(): string {
   );
 }
 
+/** Absolute system-layer checkout root, distinct from the private data root. */
+export function careerOpsCodeRoot(): string {
+  return resolveCodeRoot(process.cwd(), process.env);
+}
+
 /**
  * Absolute path to a core root script (e.g. doctor, verify-portals). The `.mjs`
  * is assembled here from the bare name so the literal never appears as a direct
@@ -63,7 +68,7 @@ export function rootScript(nameNoExt: string): string {
   // resolveRootScript() already returns the absolute `<checkout>/<name>.mjs`, and
   // its path.join carries the Turbopack ignore: the core checkout is selected at
   // runtime and must not be bundled into the web server output.
-  return resolveRootScript(resolveCodeRoot(process.cwd(), process.env), nameNoExt);
+  return resolveRootScript(careerOpsCodeRoot(), nameNoExt);
 }
 
 // Feature-detect the core's `tracker.mjs delete --num` row-delete (#1200) by probing

@@ -1,6 +1,6 @@
-# career-ops web (alpha)
+# RoleLinked web dashboard (alpha)
 
-An **experimental, opt-in web UI** for career-ops. It is a local-first *view* over
+An **experimental, opt-in web UI** for RoleLinked. It is a local-first *view* over
 the exact same files the CLI reads and writes (`data/pipeline.md`,
 `data/applications.md`, `reports/`, `config/`): no parallel engine, no separate
 database, no server. If you never run it, nothing about your CLI workflow changes.
@@ -19,7 +19,7 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3000. The app reads the career-ops checkout it lives in
+Open http://localhost:3000. The app reads the RoleLinked checkout it lives in
 (the parent directory) — your existing CV, pipeline and reports appear as-is.
 
 The server binds IPv4 loopback, so reach it as `localhost` or `127.0.0.1`;

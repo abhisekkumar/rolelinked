@@ -3,13 +3,13 @@
 // first_seen date). 🔴 None of this ranks or scores relevance; it only labels and
 // buckets so the cheap facet filters can narrow the firehose with zero tokens.
 
-import type { AtsSource } from "@/lib/explore";
+import type { ExploreSource } from "./explore.ts";
 
 /** Which ATS a posting lives on, derived from its URL host (0 tokens, no network).
  *  Matches on the registrable domain anchored at a dot boundary (host === base OR
  *  host ends with ".base") — never a bare substring, so "greenhouse.io.evil.com"
  *  or "notlever.co" can't be misread as that ATS. */
-export function sourceFromUrl(url: string): AtsSource | null {
+export function sourceFromUrl(url: string): ExploreSource | null {
   let host = "";
   try {
     host = new URL(url).hostname.toLowerCase();
@@ -21,6 +21,22 @@ export function sourceFromUrl(url: string): AtsSource | null {
   if (domainIs("lever.co")) return "lever";
   if (domainIs("ashbyhq.com")) return "ashby";
   if (domainIs("myworkdayjobs.com") || domainIs("workday.com")) return "workday";
+  if (
+    domainIs("builtin.com") ||
+    domainIs("builtinseattle.com") ||
+    domainIs("builtinnyc.com") ||
+    domainIs("builtinsf.com") ||
+    domainIs("builtinla.com") ||
+    domainIs("builtinboston.com") ||
+    domainIs("builtinaustin.com") ||
+    domainIs("builtinchicago.org") ||
+    domainIs("builtincolorado.com")
+  ) return "builtin";
+  if (domainIs("remoteok.com")) return "remoteok";
+  if (domainIs("remotive.com")) return "remotive";
+  if (domainIs("weworkremotely.com")) return "weworkremotely";
+  if (domainIs("himalayas.app")) return "himalayas";
+  if (domainIs("jobicy.com")) return "jobicy";
   return null;
 }
 

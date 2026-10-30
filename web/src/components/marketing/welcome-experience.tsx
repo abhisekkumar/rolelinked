@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
+  AlertCircle,
   BriefcaseBusiness,
   CalendarClock,
   Check,
   CheckCircle2,
   CircleDollarSign,
+  ClipboardCheck,
+  Eye,
   FileText,
   Fingerprint,
+  LockKeyhole,
   MapPin,
   Radar,
   ScanSearch,
@@ -18,6 +22,7 @@ import {
   Sparkles,
   Target,
   Workflow,
+  X,
 } from "lucide-react";
 import { CoMark } from "@/components/co-mark";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
@@ -93,12 +98,42 @@ const week = [
   ["Fri", "Interview", "Practice is mapped to this company and role."],
 ];
 
+const resumeNames = [
+  "Staff Data Engineer · platform version",
+  "Senior Data Engineer · core version",
+  "AI Data Engineer · infrastructure version",
+];
+
+const pipelineSteps = [
+  ["Discovered", "Today · 09:12"],
+  ["Evidence checked", "Today · 09:16"],
+  ["Application ready", "Waiting for your review"],
+  ["Applied", "Not recorded"],
+];
+
 export function WelcomeExperience() {
   const [selectedRole, setSelectedRole] = useState(0);
   const [activeStage, setActiveStage] = useState(0);
-  const [packetReviewed, setPacketReviewed] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [packetApproved, setPacketApproved] = useState(false);
   const role = roles[selectedRole];
   const stage = stages[activeStage];
+
+  useEffect(() => {
+    if (!reviewOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setReviewOpen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [reviewOpen]);
 
   return (
     <main id="top" className={styles.root}>
@@ -215,16 +250,71 @@ export function WelcomeExperience() {
               </div>
               <p className={styles.stageCopy}>{stage.copy}</p>
 
-              <div className={styles.signalGrid}>
-                <div><MapPin /><span>Work model</span><strong>{role.location}</strong></div>
-                <div><CircleDollarSign /><span>Compensation</span><strong>{role.pay}</strong></div>
-                <div><Fingerprint /><span>Sponsorship</span><strong>{role.visa}</strong></div>
-              </div>
+              {stage.key === "discover" && (
+                <div className={styles.signalGrid}>
+                  <div><MapPin /><span>Work model</span><strong>{role.location}</strong></div>
+                  <div><CircleDollarSign /><span>Compensation</span><strong>{role.pay}</strong></div>
+                  <div><Fingerprint /><span>Sponsorship</span><strong>{role.visa}</strong></div>
+                </div>
+              )}
 
-              <div className={styles.stackRow}>
-                <span>Evidence match</span>
-                <div>{role.stack.map((skill) => <b key={skill}>{skill}</b>)}</div>
-              </div>
+              {stage.key === "tailor" && (
+                <div className={styles.tailorDemo}>
+                  <div className={styles.resumeChoice}>
+                    <FileText />
+                    <span>Base resume selected</span>
+                    <strong>{resumeNames[selectedRole]}</strong>
+                    <small>{role.fit}% evidence alignment before edits</small>
+                  </div>
+                  <div className={styles.evidenceChoice}>
+                    <span>Verified evidence retained</span>
+                    <div>{role.stack.map((skill) => <b key={skill}><Check /> {skill}</b>)}</div>
+                  </div>
+                  <div className={styles.gapChoice}>
+                    <AlertCircle />
+                    <span>Needs your confirmation</span>
+                    <strong>{role.visa}</strong>
+                  </div>
+                </div>
+              )}
+
+              {stage.key === "track" && (
+                <div className={styles.pipelineDemo}>
+                  {pipelineSteps.map(([label, timestamp], index) => (
+                    <div key={label} className={index < 2 ? styles.pipelineDone : index === 2 ? styles.pipelineCurrent : ""}>
+                      <span>{index < 2 ? <Check /> : index + 1}</span>
+                      <div><strong>{label}</strong><small>{timestamp}</small></div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {stage.key === "prepare" && (
+                <div className={styles.prepareDemo}>
+                  <article>
+                    <span>01 · Architecture</span>
+                    <strong>Design a reliable data platform for this role</strong>
+                    <small>45-minute system-design practice</small>
+                  </article>
+                  <article>
+                    <span>02 · Evidence</span>
+                    <strong>Map verified stories to {role.stack.slice(0, 2).join(" + ")}</strong>
+                    <small>3 source-backed prompts</small>
+                  </article>
+                  <article>
+                    <span>03 · Questions</span>
+                    <strong>Clarify sponsorship, scope, and platform ownership</strong>
+                    <small>Questions prepared for the recruiter</small>
+                  </article>
+                </div>
+              )}
+
+              {stage.key !== "tailor" && (
+                <div className={styles.stackRow}>
+                  <span>Evidence match</span>
+                  <div>{role.stack.map((skill) => <b key={skill}>{skill}</b>)}</div>
+                </div>
+              )}
               <div className={styles.nextAction}>
                 <Sparkles />
                 <div>
@@ -273,20 +363,78 @@ export function WelcomeExperience() {
         <div className={styles.approvalCard}>
           <div className={styles.approvalHeader}>
             <span><BriefcaseBusiness /> Application packet</span>
-            <span className={packetReviewed ? styles.readyState : styles.holdState}>
-              {packetReviewed ? "Reviewed" : "Held for review"}
+            <span className={packetApproved ? styles.readyState : styles.holdState}>
+              {packetApproved ? "Reviewed" : "Held for review"}
             </span>
           </div>
           <div className={styles.packetRows}>
             <span><FileText /> Tailored resume <b>Ready</b></span>
             <span><Fingerprint /> Claims check <b>Passed</b></span>
-            <span><ShieldCheck /> Submission <b>{packetReviewed ? "Still requires you" : "Blocked"}</b></span>
+            <span><ShieldCheck /> Submission <b>Blocked</b></span>
           </div>
-          <button type="button" onClick={() => setPacketReviewed(!packetReviewed)}>
-            {packetReviewed ? "Reset demo" : "Review packet"} <ArrowRight />
+          <button type="button" onClick={() => setReviewOpen(true)}>
+            {packetApproved ? "View reviewed packet" : "Review packet"} <ArrowRight />
           </button>
-          <p>{packetReviewed ? "Packet reviewed. Nothing was submitted—your final action remains yours." : "This button demonstrates the gate. It never sends an application."}</p>
+          <p>{packetApproved ? "Review complete. Submission is still blocked until you take the final action." : "Open the packet to inspect every document, answer, and unresolved item."}</p>
         </div>
+
+        {reviewOpen && (
+          <div className={styles.reviewBackdrop} onMouseDown={() => setReviewOpen(false)}>
+            <section
+              className={styles.reviewDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="packet-review-title"
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              <header className={styles.reviewHeader}>
+                <div>
+                  <span>Approval checkpoint</span>
+                  <h3 id="packet-review-title">Review the exact application packet</h3>
+                  <p>Illustrative demo · nothing here is sent or saved.</p>
+                </div>
+                <button type="button" aria-label="Close packet review" onClick={() => setReviewOpen(false)} autoFocus>
+                  <X />
+                </button>
+              </header>
+
+              <div className={styles.reviewSummary}>
+                <div><FileText /><span>Resume</span><strong>Staff Data Engineer · tailored</strong><small>3 evidence-backed emphasis changes</small></div>
+                <div><ClipboardCheck /><span>Application answers</span><strong>4 ready · 1 needs confirmation</strong><small>No qualification was inferred</small></div>
+                <div><LockKeyhole /><span>External action</span><strong>Submission locked</strong><small>Review does not grant submit permission</small></div>
+              </div>
+
+              <div className={styles.reviewBody}>
+                <article>
+                  <div className={styles.reviewItemHeading}><Eye /><span>Resume changes</span><b>Source checked</b></div>
+                  <ul>
+                    <li><Check /> Platform scale moved into the opening summary</li>
+                    <li><Check /> Spark, Python, and Airflow evidence prioritized</li>
+                    <li><Check /> Original employers, titles, dates, and metrics preserved</li>
+                  </ul>
+                </article>
+                <article>
+                  <div className={styles.reviewItemHeading}><Fingerprint /><span>Application answers</span><b className={styles.needsReview}>1 review</b></div>
+                  <dl>
+                    <div><dt>Work authorization</dt><dd>Needs your confirmation</dd></div>
+                    <div><dt>Compensation</dt><dd>Uses saved target range</dd></div>
+                    <div><dt>Why this role?</dt><dd>Drafted from verified platform experience</dd></div>
+                  </dl>
+                </article>
+              </div>
+
+              <footer className={styles.reviewFooter}>
+                <p><ShieldCheck /> Marking this reviewed never submits the application.</p>
+                <div>
+                  <button type="button" onClick={() => setReviewOpen(false)}>Keep editing</button>
+                  <button type="button" onClick={() => { setPacketApproved(true); setReviewOpen(false); }}>
+                    Mark packet reviewed <Check />
+                  </button>
+                </div>
+              </footer>
+            </section>
+          </div>
+        )}
       </section>
 
       <section className={styles.finalCta}>

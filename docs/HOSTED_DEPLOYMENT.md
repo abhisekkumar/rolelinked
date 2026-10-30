@@ -4,6 +4,25 @@ This is the operator checklist for taking RoleLinked from the local-first
 repository to `rolelinked.com`. It intentionally contains names of secrets, not
 secret values.
 
+## Current implementation boundary
+
+The repository now has a safe hosted foundation:
+
+- `ROLELINKED_DEPLOYMENT_MODE` defaults to `local`, preserving the existing
+  filesystem-backed dashboard and CLI workflows.
+- `hosted` mode refuses to start without Clerk's publishable and secret keys.
+- `/welcome`, `/sign-in`, and `/sign-up` are public; `/app` requires a Clerk
+  session.
+- The hosted `/app` route is an account shell only. It does not read local
+  resumes, trackers, reports, or configuration.
+- Existing local dashboard pages redirect to `/app` in hosted mode.
+- Existing filesystem/CLI APIs are unavailable in hosted mode. Signed-out
+  requests are intercepted by Clerk; authenticated requests fail closed with
+  `503` until a tenant-backed implementation replaces them.
+
+This is intentional. Do not remove the fail-closed boundary to make a preview
+look more complete. Tenant storage and workers are the next milestone.
+
 ## 1. Publish the source safely
 
 1. Run the checks in `docs/PRIVATE_DATA_CHECKLIST.md`.
@@ -33,6 +52,10 @@ the host's encrypted environment settings:
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `CLERK_SECRET_KEY`
 - `CLERK_WEBHOOK_SIGNING_SECRET`
+- `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`
+- `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up`
+- `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/app`
+- `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/app`
 
 Do not paste secret keys into Git, issues, screenshots, chat logs, or client-side
 JavaScript. Clerk integration must protect server routes as well as pages.

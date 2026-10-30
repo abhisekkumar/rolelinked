@@ -26,7 +26,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // chrome. Keeping the exception here avoids duplicating the root providers
   // while the hosted app and its authenticated route group are introduced in
   // stages. The local dashboard remains unchanged at `/`.
-  if (pathname === "/welcome" || pathname.startsWith("/welcome/")) {
+  const outsideDashboard = ["/welcome", "/sign-in", "/sign-up", "/app"].some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+  if (outsideDashboard) {
     return <>{children}</>;
   }
 

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { CoMark } from "@/components/co-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { isHostedDeployment } from "@/lib/deployment-mode.mjs";
 import { instrumentSerif } from "@/lib/fonts";
 
 export const metadata: Metadata = {
@@ -57,6 +58,8 @@ const trustPoints = [
 ];
 
 export default function WelcomePage() {
+  const hosted = isHostedDeployment();
+
   return (
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
       <div className="pointer-events-none fixed inset-0 dot-bg opacity-70" />
@@ -78,10 +81,10 @@ export default function WelcomePage() {
             </a>
             <ThemeToggle />
             <Link
-              href="/"
+              href={hosted ? "/sign-in" : "/"}
               className="rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground shadow-[0_8px_30px_rgba(15,118,110,0.22)] transition hover:-translate-y-0.5 hover:bg-brand-200"
             >
-              Open local app
+              {hosted ? "Sign in" : "Open local app"}
             </Link>
           </nav>
         </div>
@@ -108,10 +111,10 @@ export default function WelcomePage() {
               <ArrowRight className="size-4" />
             </a>
             <a
-              href="#hosted"
+              href={hosted ? "/sign-up" : "#hosted"}
               className="inline-flex items-center justify-center rounded-full border border-border bg-surface/70 px-6 py-3.5 font-semibold text-foreground transition hover:border-brand/40 hover:bg-surface-hover"
             >
-              See the hosted plan
+              {hosted ? "Create a free account" : "See the hosted plan"}
             </a>
           </div>
           <p className="mt-4 text-sm text-faint">Open source locally. Approval-first everywhere.</p>

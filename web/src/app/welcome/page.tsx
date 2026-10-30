@@ -57,6 +57,8 @@ const trustPoints = [
 ];
 
 export default function WelcomePage() {
+  const hosted = process.env.ROLELINKED_DEPLOYMENT_MODE === "hosted";
+
   return (
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
       <div className="pointer-events-none fixed inset-0 dot-bg opacity-70" />
@@ -78,10 +80,10 @@ export default function WelcomePage() {
             </a>
             <ThemeToggle />
             <Link
-              href="/"
+              href={hosted ? "#hosted" : "/"}
               className="rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground shadow-[0_8px_30px_rgba(15,118,110,0.22)] transition hover:-translate-y-0.5 hover:bg-brand-200"
             >
-              Open local app
+              {hosted ? "Hosted beta" : "Open local app"}
             </Link>
           </nav>
         </div>

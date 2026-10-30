@@ -5,6 +5,10 @@ import {
   parseAllowedHosts,
   parseAllowedOrigins,
 } from "@/lib/origin-guard.mjs";
+import {
+  hostedRouteDecision,
+  isHostedDeployment,
+} from "@/lib/deployment-mode.mjs";
 
 // Single choke point over everything the dashboard serves. Every request is
 // gated on the same-origin + loopback guard before it can reach a route handler
@@ -21,6 +25,19 @@ import {
 // from a chrome-extension:// origin, which Fetch Metadata always reports as
 // "cross-site", so every one of its requests is refused otherwise.
 export function proxy(req: NextRequest) {
+  if (isHostedDeployment(process.env.ROLELINKED_DEPLOYMENT_MODE)) {
+    const route = hostedRouteDecision(req.nextUrl.pathname);
+    if (route.action === "redirect" && route.pathname) {
+      return NextResponse.redirect(new URL(route.pathname, req.url));
+    }
+    if (route.action === "allow") return NextResponse.next();
+
+    return NextResponse.json(
+      { error: "The hosted dashboard is not available in this preview yet." },
+      { status: 404 },
+    );
+  }
+
   const decision = checkRequest({
     secFetchSite: req.headers.get("sec-fetch-site"),
     origin: req.headers.get("origin"),

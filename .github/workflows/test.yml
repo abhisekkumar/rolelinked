@@ -86,6 +86,10 @@ jobs:
           if-no-files-found: ignore
   upgrade-gate:
     name: Upgrade regression gate
+    # RoleLinked ships fork releases and deliberately does not apply Career Ops
+    # release tags through update-system.mjs. The inherited gate remains useful
+    # upstream but has no valid release ancestor in this derivative repository.
+    if: github.repository == 'career-ops-hq/career-ops'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

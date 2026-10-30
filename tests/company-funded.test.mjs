@@ -337,11 +337,12 @@ try {
       Object.defineProperty(redirect, 'url', { value: String(url) });
       return redirect;
     }
+    const recentFundingDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toUTCString();
     const res = new Response(`<?xml version="1.0"?><rss><channel>
         <item>
           <title>Acme raises $25M Series A</title>
           <link>https://techcrunch.com/acme</link>
-          <pubDate>Wed, 15 Jul 2026 12:00:00 +0000</pubDate>
+          <pubDate>${recentFundingDate}</pubDate>
           <description>Acme raises funding.</description>
         </item>
       </channel></rss>`, {

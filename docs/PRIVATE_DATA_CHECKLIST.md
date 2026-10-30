@@ -16,7 +16,7 @@ Run this checklist before creating or updating a public RoleLinked repository.
 git status --short
 git ls-files data reports output documents interview-prep .career-ops-web
 git check-ignore -v cv.md config/profile.yml portals.yml data/applications.md .env
-git grep -n -I -E '/Users/|/home/|password|api[_-]?key|secret|bearer|session[_-]?cookie' -- . ':!*.example*' ':!test-fixtures/**'
+git grep -n -I -E '[/]Users/|/home/|password|api[_-]?key|secret|bearer|session[_-]?cookie' -- . ':!*.example*' ':!test-fixtures/**'
 ```
 
 Review every match. Examples, tests, and documentation may use obviously fictional values; operational secrets and personal paths are never acceptable.

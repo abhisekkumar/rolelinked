@@ -1,10 +1,10 @@
 {
-  "name": "career-ops",
-  "version": "1.35.0",
-  "description": "Open-source AI job search that runs locally in your AI coding CLI: scan job portals, evaluate listings into a structured A-H report with a 1-5 score, tailor your CV, track applications",
+  "name": "rolelinked",
+  "version": "0.1.0",
+  "description": "Local-first AI career command center for role discovery, truthful application preparation, pipeline tracking, and interview practice",
   "author": {
-    "name": "santifer",
-    "url": "https://santifer.io"
+    "name": "RoleLinked contributors",
+    "url": "https://rolelinked.com"
   },
   "skills": [
     "./.agents/skills/career-ops"

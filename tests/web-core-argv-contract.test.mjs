@@ -79,6 +79,18 @@ const CALL_SITES = [
     probe: 'flags-only',
   },
   {
+    source: 'web/src/lib/core/scan.ts',
+    script: 'scan-explore-boards.mjs',
+    // The board scanner is a second core process launched from scan.ts.
+    args: [
+      '--sources', 'builtin',
+      '--filters', 'filters.yml',
+      '--user-portals', 'portals.yml',
+      '--since', '7',
+    ],
+    probe: 'flags-only',
+  },
+  {
     source: 'web/src/lib/core/pipeline.ts',
     script: null,
     args: [],
@@ -124,8 +136,11 @@ export function verifyWebStaticSources({ root = ROOT, reportPass = pass, reportF
   for (const site of CALL_SITES) {
     const src = readFileSync(join(root, site.source), 'utf-8');
     const literals = [...new Set([...src.matchAll(/"(--[a-z][a-z0-9-]*)"/g)].map((m) => m[1]))];
+    const coveredArgs = CALL_SITES
+      .filter((candidate) => candidate.source === site.source)
+      .flatMap((candidate) => candidate.args);
     for (const flag of literals) {
-      if (!site.args.includes(flag))
+      if (!coveredArgs.includes(flag))
         flagDrift.push(`${site.source} passes ${flag}, which no probe above covers`);
     }
   }

@@ -98,6 +98,10 @@
     "Santiago Fernández de Valderrama and Career Ops contributors (upstream)"
   ],
   "homepage": "https://rolelinked.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abhisekkumar/rolelinked.git"
+  },
   "license": "MIT",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

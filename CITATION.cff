@@ -1,18 +1,19 @@
 cff-version: 1.2.0
-message: "If you use career-ops, please cite it using these metadata."
-title: "Career-Ops: AI-Powered Job Search Pipeline"
+message: "If you use RoleLinked, please cite it and retain the Career Ops attribution."
+title: "RoleLinked: AI Career Command Center"
 type: software
 authors:
+  - name: "RoleLinked contributors"
   - family-names: "Fernández de Valderrama"
     given-names: "Santiago"
     website: "https://santifer.io"
-url: "https://career-ops.org"
-repository-code: "https://github.com/career-ops-hq/career-ops"
+url: "https://rolelinked.com"
+repository-code: "https://github.com/abhisekkumar/rolelinked"
 license: MIT
 keywords:
   - ai
   - job-search
-  - career-ops
+  - rolelinked
   - claude-code
   - automation
   - local-first

@@ -102,7 +102,15 @@ const RECONCILED_NOT_CHECKED_OUT = ['.gitignore'];
 // `system-files-changed` on every install in the world, with no `apply` able
 // to clear it for long (#4062). Excluded rather than shipped: the fix is that
 // installs stop tracking a ledger they never use.
-const REPO_ONLY = ['SIGNATURES.md'];
+const REPO_ONLY = [
+  'SIGNATURES.md',
+  // RoleLinked is an independent derivative and does not distribute these
+  // fork-owned files through the Career Ops updater. They ship from this
+  // repository (and its hosted/local releases) instead.
+  'NOTICE.md',
+  'linkedin-jobs-import.mjs',
+  'scan-explore-boards.mjs',
+];
 
 // Trees that live in the repo but deliberately OUTSIDE the updater's world:
 // web/ is the experimental web UI — its own release-please component, never

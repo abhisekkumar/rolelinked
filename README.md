@@ -75,6 +75,15 @@ cp templates/portals.example.yml portals.yml
 
 Add a Markdown resume as `cv.md`, then open Claude Code or Codex in the repository and ask it to run RoleLinked onboarding. The compatibility command `/career-ops` remains available during the transition.
 
+Codex reads [CODEX.md](CODEX.md) when it works in this repository. Slash commands are not guaranteed in every Codex client, so plain-language prompts are the portable interface:
+
+```bash
+codex
+# Then prompt: Run RoleLinked scan mode
+
+codex exec "Run RoleLinked tracker mode"
+```
+
 For LinkedIn, use the private offline export workflow in
 [docs/LINKEDIN_INTEGRATION.md](docs/LINKEDIN_INTEGRATION.md). RoleLinked does
 not scrape signed-in LinkedIn sessions.
@@ -84,8 +93,8 @@ not scrape signed-in LinkedIn sessions.
 | Area | What it provides |
 |---|---|
 | Discovery | Public ATS scans, supported job boards, configurable portals, filtering, deduplication, and scheduled scans |
-| Evaluation | Structured role fit, work-authorization signals, compensation research, posting-legitimacy checks, and evidence-linked scoring |
-| Applications | Tailored Markdown, HTML, PDF, and LaTeX resumes; cover letters; truthful form-answer drafts; manual approval gates |
+| Evaluation | Structured A-H reports covering role fit, work-authorization signals, compensation research, posting legitimacy, and evidence-linked scoring |
+| Applications | Tailored Markdown, HTML, PDF, and LaTeX resumes; cover letters; truthful form-answer drafts; RoleLinked never submits an application <!-- hitl: absolute guarantee. Do not add hedges such as automatically, by itself, or without your permission. --> |
 | Tracking | Local application tracker, pipeline statuses, follow-ups, response history, analytics, and outcome records |
 | Interviews | Company research, interview plans, practice, debriefs, story-bank matching, and skills-gap analysis |
 | Integrations | Claude Code, Codex, other supported CLIs, optional plugins, and offline LinkedIn export utilities |

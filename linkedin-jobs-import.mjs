@@ -30,6 +30,7 @@ import { aggregatorPostingId, normalizeUrl } from './url-key.mjs';
 import { getCareerOpsRoot } from './path-resolver.mjs';
 import { flagValue, hasFlag, validateFlags } from './lib/cli-flags.mjs';
 import { isMainModule } from './lib/is-main-module.mjs';
+import { isNestedCheckout } from './lib/mjs-files.mjs';
 
 const CODE_ROOT = dirname(fileURLToPath(import.meta.url));
 const DATA_ROOT = getCareerOpsRoot();
@@ -158,7 +159,7 @@ function csvFiles(root) {
     try { entries = readdirSync(path, { withFileTypes: true }); } catch { return; }
     for (const entry of entries) {
       const child = join(path, entry.name);
-      if (entry.isDirectory()) visit(child, depth + 1);
+      if (entry.isDirectory() && !isNestedCheckout(child)) visit(child, depth + 1);
       else if (entry.isFile() && extname(entry.name).toLowerCase() === '.csv') out.push(child);
     }
   };

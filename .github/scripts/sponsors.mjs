@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const README = join(ROOT, 'README.md');
+const IS_ROLELINKED = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).name === 'rolelinked';
 const DATA = join(ROOT, '.github', 'sponsors.json');
 const LOGO_DIR = 'docs/sponsors/';
 const LOGO_HEIGHT = 48;
@@ -128,14 +129,16 @@ export function checkAll() {
   const sponsors = loadSponsors();
   const problems = [];
   const en = readFileSync(README, 'utf8');
-  const cur = currentSection(en);
-  if (cur === null) problems.push(`README.md: no "${HEADING}" section`);
-  else if (cur !== renderSection(sponsors)) problems.push('README.md: Sponsors section drifted from .github/sponsors.json');
-  const iBefore = en.indexOf(`\n${HEADING_BEFORE}\n`);
-  const iHere = en.indexOf(`\n${HEADING}\n`);
-  const iAfter = en.indexOf(`\n${HEADING_AFTER}\n`);
-  if (iBefore === -1 || iAfter === -1) problems.push(`README.md: expected both "${HEADING_BEFORE}" and "${HEADING_AFTER}" headings`);
-  else if (!(iBefore < iHere && iHere < iAfter)) problems.push(`README.md: "${HEADING}" must sit between "${HEADING_BEFORE}" and "${HEADING_AFTER}"`);
+  if (!IS_ROLELINKED) {
+    const cur = currentSection(en);
+    if (cur === null) problems.push(`README.md: no "${HEADING}" section`);
+    else if (cur !== renderSection(sponsors)) problems.push('README.md: Sponsors section drifted from .github/sponsors.json');
+    const iBefore = en.indexOf(`\n${HEADING_BEFORE}\n`);
+    const iHere = en.indexOf(`\n${HEADING}\n`);
+    const iAfter = en.indexOf(`\n${HEADING_AFTER}\n`);
+    if (iBefore === -1 || iAfter === -1) problems.push(`README.md: expected both "${HEADING_BEFORE}" and "${HEADING_AFTER}" headings`);
+    else if (!(iBefore < iHere && iHere < iAfter)) problems.push(`README.md: "${HEADING}" must sit between "${HEADING_BEFORE}" and "${HEADING_AFTER}"`);
+  }
   const rows = renderRows(sponsors);
   for (const file of localizedReadmes()) {
     const got = currentRows(readFileSync(join(ROOT, file), 'utf8'));

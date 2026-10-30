@@ -17,7 +17,7 @@ git status --short
 git diff --check
 git diff --stat
 git check-ignore -v cv.md config/profile.yml portals.yml data/applications.md data/Connections.csv .env
-git grep -n -I -E 'neoxstarx|/Users/|password|api[_-]?key|secret|token' -- . ':!*.example*' ':!test-fixtures/**'
+git grep -n -I -E '[/]Users/|/home/|password|api[_-]?key|secret|token' -- . ':!*.example*' ':!test-fixtures/**'
 ```
 
 Review every reported path. Do not publish real resumes, profiles, trackers,

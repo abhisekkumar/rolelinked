@@ -16,6 +16,15 @@ import { buildTitleFilter, buildLocationFilter, buildPostingAgeFilter } from './
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const SUPPORTED = new Set(['builtin', 'remoteok', 'remotive', 'weworkremotely', 'himalayas', 'jobicy']);
+const USAGE = `Usage: node scan-explore-boards.mjs [options]
+
+Read-only scan of public job boards outside the reverse-ATS directories.
+
+  --sources <ids>         Comma-separated board IDs
+  --filters <path>        Explore filter YAML
+  --user-portals <path>   User portals YAML
+  --since <days>          Maximum posting age (default: 7)
+  --help, -h              Show this message`;
 
 function readYaml(file, label) {
   try {
@@ -76,9 +85,15 @@ async function main() {
       filters: { type: 'string' },
       'user-portals': { type: 'string' },
       since: { type: 'string', default: '7' },
+      help: { type: 'boolean', short: 'h' },
     },
     strict: true,
   });
+
+  if (values.help) {
+    process.stdout.write(`${USAGE}\n`);
+    return;
+  }
 
   const requested = String(values.sources ?? '')
     .split(',')

@@ -88,5 +88,5 @@ After the production deployment is healthy:
 3. Verify TLS, Clerk production redirects, canonical URLs, email links, and
    webhook endpoints.
 4. Keep the previous destination available until DNS and login are verified.
-5. Publish the hosted beta as free with fair-use safeguards and keep the local
+5. Publish the hosted launch as free with fair-use safeguards and keep the local
    installation instructions visible.

@@ -7,7 +7,7 @@
     radial-gradient(circle at 15% 0%, rgba(191, 181, 255, 0.42), transparent 34rem),
     radial-gradient(circle at 96% 22%, rgba(138, 224, 191, 0.32), transparent 30rem),
     #f7f6fb;
-  padding: clamp(1.25rem, 4vw, 4rem);
+  padding: clamp(7rem, 11vw, 9rem) clamp(1.25rem, 4vw, 4rem) clamp(1.25rem, 4vw, 4rem);
 }
 
 .glow {
@@ -151,7 +151,7 @@
 
 @media (max-width: 560px) {
   .page {
-    padding: 0;
+    padding: 6.5rem 0 0;
   }
 
   .document {

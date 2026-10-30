@@ -32,27 +32,6 @@
 .auroraOne { width: 28rem; height: 28rem; top: 30rem; left: -15rem; background: rgba(111, 116, 222, 0.19); }
 .auroraTwo { width: 32rem; height: 32rem; top: 70rem; right: -17rem; background: rgba(93, 164, 146, 0.19); animation-delay: -5s; }
 
-.header { position: relative; z-index: 20; padding: 1rem 1.25rem 0; }
-.headerInner {
-  max-width: 78rem;
-  margin: 0 auto;
-  padding: 0.8rem 0.9rem 0.8rem 1.05rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  border: 1px solid rgba(255,255,255,0.82);
-  border-radius: 1.35rem;
-  background: rgba(255,255,255,0.7);
-  box-shadow: 0 12px 38px rgba(40, 48, 89, 0.08);
-  backdrop-filter: blur(22px);
-}
-
-.brand { display: flex; align-items: center; gap: 0.65rem; font-size: 1.65rem; color: var(--ink); }
-.nav { display: flex; align-items: center; gap: 1.7rem; font-size: 0.88rem; color: var(--muted); }
-.nav a { transition: color 180ms ease; }
-.nav a:hover { color: var(--ink); }
-.headerCta,
 .primaryCta {
   display: inline-flex;
   align-items: center;
@@ -65,9 +44,8 @@
   box-shadow: 0 10px 28px rgba(91, 94, 201, 0.25);
   transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
 }
-.headerCta { padding: 0.75rem 1.05rem; font-size: 0.82rem; }
-.headerCta svg, .primaryCta svg { width: 1rem; height: 1rem; }
-.headerCta:hover, .primaryCta:hover { transform: translateY(-2px); background: var(--violet-dark); box-shadow: 0 16px 32px rgba(91, 94, 201, 0.3); }
+.primaryCta svg { width: 1rem; height: 1rem; }
+.primaryCta:hover { transform: translateY(-2px); background: var(--violet-dark); box-shadow: 0 16px 32px rgba(91, 94, 201, 0.3); }
 
 .hero {
   position: relative;
@@ -126,6 +104,9 @@
 .focusRail span:nth-child(3)::after { width: 46%; animation-delay: -1.4s; }
 
 .workspaceSection { position: relative; z-index: 3; max-width: 82rem; margin: 0 auto; padding: 6rem 2rem; }
+.workspaceSection,
+.rhythmSection,
+.controlSection { scroll-margin-top: 7rem; }
 .sectionIntro { display: grid; grid-template-columns: 1.2fr .8fr; gap: 4rem; align-items: end; margin-bottom: 2.5rem; }
 .sectionIntro h2, .rhythmCopy h2, .controlCopy h2, .finalCta h2 { margin-top: .7rem; font-size: clamp(2.9rem, 5vw, 4.9rem); line-height: .98; font-weight: 400; letter-spacing: -.04em; }
 .sectionIntro > p { color: var(--muted); line-height: 1.75; }
@@ -226,7 +207,6 @@
 @keyframes detailIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
 @media (max-width: 900px) {
-  .nav { display: none; }
   .hero { grid-template-columns: 1fr; gap: 2rem; padding-top: 5rem; }
   .heroVisual { min-height: 25rem; }
   .orbit { width: 23rem; height: 23rem; }
@@ -238,9 +218,6 @@
 }
 
 @media (max-width: 640px) {
-  .header { padding: .7rem .7rem 0; }
-  .brand span { font-size: 1.35rem; }
-  .headerCta { padding: .7rem .85rem; font-size: .72rem; }
   .hero { min-height: auto; padding: 4.5rem 1.15rem 3rem; }
   .hero h1 { font-size: 4rem; }
   .heroVisual { min-height: 22rem; }
@@ -270,5 +247,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .auroraOne, .auroraTwo, .heroCopy, .heroVisual, .orbit, .liveDot, .focusRail span::after, .roleDetail { animation: none; }
-  .headerCta, .primaryCta, .secondaryCta, .roleButton, .roleSelected, .weekFlow article, .approvalCard > button { transition: none; }
+  .primaryCta, .secondaryCta, .roleButton, .roleSelected, .weekFlow article, .approvalCard > button { transition: none; }
 }

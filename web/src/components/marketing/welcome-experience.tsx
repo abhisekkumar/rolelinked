@@ -20,6 +20,7 @@ import {
   Workflow,
 } from "lucide-react";
 import { CoMark } from "@/components/co-mark";
+import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { instrumentSerif } from "@/lib/fonts";
 import styles from "./welcome.module.css";
 
@@ -100,26 +101,11 @@ export function WelcomeExperience() {
   const stage = stages[activeStage];
 
   return (
-    <main className={styles.root}>
+    <main id="top" className={styles.root}>
       <div className={styles.auroraOne} aria-hidden="true" />
       <div className={styles.auroraTwo} aria-hidden="true" />
 
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <Link href="/welcome" className={styles.brand} aria-label="RoleLinked home">
-            <CoMark size={36} />
-            <span className={instrumentSerif.className}>RoleLinked</span>
-          </Link>
-          <nav className={styles.nav} aria-label="Primary navigation">
-            <a href="#workspace">Product</a>
-            <a href="#rhythm">How it works</a>
-            <a href="#control">Control</a>
-          </nav>
-          <a href="#workspace" className={styles.headerCta}>
-            See it in action <ArrowRight aria-hidden="true" />
-          </a>
-        </div>
-      </header>
+      <MarketingHeader />
 
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
@@ -258,7 +244,7 @@ export function WelcomeExperience() {
         <div className={styles.rhythmCopy}>
           <span className={styles.kicker}>A search with a memory</span>
           <h2 className={instrumentSerif.className}>Every action makes the next one easier.</h2>
-          <p>RoleLinked keeps the role, evidence, documents, status, and interview context connected instead of starting from zero each time.</p>
+          <p>RoleLinked keeps the role, evidence, documents, status, and interview context connected instead of starting from zero each time. It is agentic where coordination saves time, and approval-first wherever an action could leave your workspace.</p>
         </div>
         <div className={styles.weekFlow}>
           {week.map(([day, title, copy], index) => (

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { MarketingHeader } from "@/components/marketing/marketing-header";
+
 import styles from "../legal/legal.module.css";
 
 export const metadata: Metadata = {
@@ -13,6 +15,7 @@ export default function AboutPage() {
   return (
     <main className={styles.page}>
       <div className={styles.glow} aria-hidden="true" />
+      <MarketingHeader />
       <article className={styles.document}>
         <Link className={styles.backLink} href="/welcome">
           ← Back to RoleLinked

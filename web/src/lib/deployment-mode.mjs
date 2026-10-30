@@ -12,12 +12,22 @@ export function isMarketingPath(pathname) {
   );
 }
 
+export function isHostedAppPath(pathname) {
+  return ["/onboarding", "/app"].some(
+    (basePath) => pathname === basePath || pathname.startsWith(`${basePath}/`),
+  );
+}
+
+export function usesStandaloneShell(pathname) {
+  return isMarketingPath(pathname) || isHostedAppPath(pathname);
+}
+
 export function hostedRouteDecision(pathname) {
   if (pathname === "/") {
     return { action: "redirect", pathname: "/welcome" };
   }
 
-  if (isMarketingPath(pathname) || pathname === "/icon.svg") {
+  if (isMarketingPath(pathname) || isHostedAppPath(pathname) || pathname === "/icon.svg") {
     return { action: "allow" };
   }
 

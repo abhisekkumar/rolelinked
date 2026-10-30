@@ -22,12 +22,15 @@ export function MarketingHeader() {
         <nav className={styles.nav} aria-label="Primary navigation">
           <Link href="/welcome#workspace">Product</Link>
           <Link href="/welcome#rhythm">How it works</Link>
-          <Link href="/welcome#control">Control</Link>
+          <Link href="/legal#privacy">Privacy</Link>
         </nav>
 
-        <Link href="/welcome#workspace" className={styles.headerCta}>
-          See it in action <ArrowRight aria-hidden="true" />
-        </Link>
+        <div className={styles.headerActions}>
+          <Link href="/app/today" className={styles.previewLink}>Workspace preview</Link>
+          <Link href="/onboarding" className={styles.headerCta}>
+            Start free <ArrowRight aria-hidden="true" />
+          </Link>
+        </div>
       </div>
     </header>
   );

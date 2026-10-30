@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { UserButton } from "@clerk/nextjs";
 import {
   BarChart3,
   Bell,
@@ -17,10 +18,12 @@ import {
   Search,
   Settings,
   Sparkles,
+  Unplug,
 } from "lucide-react";
 
 import { CoMark } from "@/components/co-mark";
 import { instrumentSerif } from "@/lib/fonts";
+import type { HostedIdentity } from "@/lib/hosted/identity";
 
 import styles from "./hosted-app-shell.module.css";
 
@@ -35,9 +38,10 @@ const navItems = [
   { label: "Automations", href: "/app/automations", icon: CalendarClock, ready: false },
   { label: "Sources", href: "/app/sources", icon: Radar, ready: false },
   { label: "Analytics", href: "/app/analytics", icon: BarChart3, ready: false },
+  { label: "Integrations", href: "/app/integrations", icon: Unplug, ready: true },
 ];
 
-export function HostedAppShell({ children }: { children: React.ReactNode }) {
+export function HostedAppShell({ children, identity }: { children: React.ReactNode; identity: HostedIdentity }) {
   const pathname = usePathname();
 
   return (
@@ -75,9 +79,9 @@ export function HostedAppShell({ children }: { children: React.ReactNode }) {
         <div className={styles.sidebarFooter}>
           <Link href="/onboarding"><Settings /> Finish setup</Link>
           <div className={styles.accountCard}>
-            <span>RL</span>
-            <div><strong>Demo workspace</strong><small>Sample data only</small></div>
-            <ChevronDown />
+            {identity.mode === "clerk" ? <UserButton /> : <span>RL</span>}
+            <div><strong>{identity.label}</strong><small>{identity.detail}</small></div>
+            {identity.mode === "preview" && <ChevronDown />}
           </div>
         </div>
       </aside>
@@ -90,7 +94,7 @@ export function HostedAppShell({ children }: { children: React.ReactNode }) {
           </Link>
           <div className={styles.searchPreview}><Search /><span>Search roles, applications, and documents</span><kbd>⌘ K</kbd></div>
           <div className={styles.topbarActions}>
-            <span className={styles.safeBadge}>Sample workspace</span>
+            <span className={styles.safeBadge}>{identity.mode === "preview" ? "Sample workspace" : "Private workspace"}</span>
             <Link href="/onboarding">Finish setup</Link>
           </div>
         </header>

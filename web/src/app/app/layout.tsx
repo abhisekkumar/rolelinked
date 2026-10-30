@@ -1,5 +1,11 @@
-import { HostedAppShell } from "@/components/hosted/hosted-app-shell";
+import { redirect } from "next/navigation";
 
-export default function HostedWorkspaceLayout({ children }: { children: React.ReactNode }) {
-  return <HostedAppShell>{children}</HostedAppShell>;
+import { HostedAppShell } from "@/components/hosted/hosted-app-shell";
+import { getHostedIdentity } from "@/lib/hosted/identity";
+
+export default async function HostedWorkspaceLayout({ children }: { children: React.ReactNode }) {
+  const identity = await getHostedIdentity();
+  if (!identity) redirect("/sign-in");
+
+  return <HostedAppShell identity={identity}>{children}</HostedAppShell>;
 }

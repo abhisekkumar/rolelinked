@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 
 import {
   hostedRouteDecision,
+  isHostedApiPath,
   isHostedAppPath,
+  isHostedAuthPath,
+  isHostedProtectedPath,
   isHostedDeployment,
   isMarketingPath,
   usesStandaloneShell,
@@ -44,6 +47,20 @@ test("hosted app routes use their own tenant-safe shell", () => {
   assert.equal(usesStandaloneShell("/pipeline"), false);
   assert.deepEqual(hostedRouteDecision("/onboarding"), { action: "allow" });
   assert.deepEqual(hostedRouteDecision("/app/today"), { action: "allow" });
+});
+
+test("hosted auth and API namespaces are explicit", () => {
+  assert.equal(isHostedAuthPath("/sign-in"), true);
+  assert.equal(isHostedAuthPath("/sign-up/sso-callback"), true);
+  assert.equal(isHostedAuthPath("/__clerk/v1/client"), true);
+  assert.equal(isHostedApiPath("/api/hosted/workspace"), true);
+  assert.equal(isHostedApiPath("/api/pipeline"), false);
+  assert.equal(isHostedProtectedPath("/app/today"), true);
+  assert.equal(isHostedProtectedPath("/onboarding"), true);
+  assert.equal(isHostedProtectedPath("/api/hosted/workspace"), true);
+  assert.equal(isHostedProtectedPath("/welcome"), false);
+  assert.deepEqual(hostedRouteDecision("/sign-in"), { action: "allow" });
+  assert.deepEqual(hostedRouteDecision("/api/hosted/workspace"), { action: "allow" });
 });
 
 test("dashboard and API routes remain closed during the landing preview", () => {

@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import type { NextFetchEvent, NextRequest } from "next/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 import {
   checkRequest,
   parseAllowedHosts,
   parseAllowedOrigins,
 } from "@/lib/origin-guard.mjs";
+import { isHostedDeployment } from "@/lib/deployment-mode.mjs";
+import {
+  classifyHostedPath,
+  HOSTED_UNAVAILABLE_MESSAGE,
+} from "@/lib/hosted-boundary.mjs";
 
 // Single choke point over everything the dashboard serves. Every request is
 // gated on the same-origin + loopback guard before it can reach a route handler
@@ -20,7 +26,7 @@ import {
 // was. It is what a local companion client needs: a browser extension calls
 // from a chrome-extension:// origin, which Fetch Metadata always reports as
 // "cross-site", so every one of its requests is refused otherwise.
-export function proxy(req: NextRequest) {
+function localProxy(req: NextRequest) {
   const decision = checkRequest({
     secFetchSite: req.headers.get("sec-fetch-site"),
     origin: req.headers.get("origin"),
@@ -32,6 +38,43 @@ export function proxy(req: NextRequest) {
     return NextResponse.json({ error: decision.reason }, { status: decision.status });
   }
   return NextResponse.next();
+}
+
+const hostedProxy = clerkMiddleware(async (auth, req) => {
+  const decision = classifyHostedPath(req.nextUrl.pathname);
+
+  if (decision.redirectTo && decision.access === "public") {
+    return NextResponse.redirect(new URL(decision.redirectTo, req.url));
+  }
+  if (decision.access === "public") return NextResponse.next();
+
+  await auth.protect();
+
+  if (decision.unavailable) {
+    return NextResponse.json(
+      {
+        error: "hosted_capability_unavailable",
+        message: HOSTED_UNAVAILABLE_MESSAGE,
+      },
+      { status: 503 },
+    );
+  }
+  if (decision.redirectTo) {
+    return NextResponse.redirect(new URL(decision.redirectTo, req.url));
+  }
+  return NextResponse.next();
+});
+
+export function proxy(req: NextRequest, event: NextFetchEvent) {
+  if (isHostedDeployment()) {
+    const decision = classifyHostedPath(req.nextUrl.pathname);
+    if (decision.redirectTo && decision.access === "public") {
+      return NextResponse.redirect(new URL(decision.redirectTo, req.url));
+    }
+    if (decision.access === "public") return NextResponse.next();
+    return hostedProxy(req, event);
+  }
+  return localProxy(req);
 }
 
 // Everything except build assets. Scoping this to /api left every page route

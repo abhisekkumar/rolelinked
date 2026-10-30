@@ -6,16 +6,18 @@ export function isHostedDeployment(value) {
   return String(value || "").trim().toLowerCase() === "hosted";
 }
 
+export function isMarketingPath(pathname) {
+  return ["/welcome", "/about", "/legal"].some(
+    (basePath) => pathname === basePath || pathname.startsWith(`${basePath}/`),
+  );
+}
+
 export function hostedRouteDecision(pathname) {
   if (pathname === "/") {
     return { action: "redirect", pathname: "/welcome" };
   }
 
-  if (
-    pathname === "/welcome" ||
-    pathname.startsWith("/welcome/") ||
-    pathname === "/icon.svg"
-  ) {
+  if (isMarketingPath(pathname) || pathname === "/icon.svg") {
     return { action: "allow" };
   }
 

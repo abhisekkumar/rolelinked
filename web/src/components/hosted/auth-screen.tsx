@@ -3,16 +3,30 @@ import { SignIn, SignUp } from "@clerk/nextjs";
 import { ShieldCheck } from "lucide-react";
 
 import { CoMark } from "@/components/co-mark";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { instrumentSerif } from "@/lib/fonts";
 import { isHostedAuthConfigured } from "@/lib/hosted/config.mjs";
 
 import styles from "./auth-screen.module.css";
 
 const authAppearance = {
+  variables: {
+    colorPrimary: "var(--auth-primary)",
+    colorBackground: "var(--auth-clerk-bg)",
+    colorInputBackground: "var(--auth-input-bg)",
+    colorInputText: "var(--auth-clerk-fg)",
+    colorText: "var(--auth-clerk-fg)",
+    colorTextSecondary: "var(--auth-clerk-muted)",
+    colorNeutral: "var(--auth-clerk-fg)",
+    borderRadius: "0.8rem",
+  },
   elements: {
     rootBox: styles.clerkRoot,
     cardBox: styles.clerkCardBox,
     card: styles.clerkCard,
+    socialButtonsBlockButton: styles.clerkControl,
+    formFieldInput: styles.clerkControl,
+    formButtonPrimary: styles.clerkControl,
   },
 };
 
@@ -23,6 +37,9 @@ export function AuthScreen({ mode }: { mode: "sign-in" | "sign-up" }) {
   return (
     <main className={styles.page}>
       <section className={styles.frame}>
+        <div className={styles.themeSwitch}>
+          <ThemeToggle className={styles.themeButton} />
+        </div>
         <div className={styles.story}>
           <Link href="/welcome#top" className={styles.brand}>
             <CoMark size={34} />

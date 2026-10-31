@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { usesStandaloneShell } from "@/lib/deployment-mode.mjs";
 import { cn } from "@/lib/cn";
 import { CoMark } from "@/components/co-mark";
 import { AssistantConsole } from "@/components/assistant-console";
@@ -26,7 +27,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // chrome. Keeping the exception here avoids duplicating the root providers
   // while the hosted app and its authenticated route group are introduced in
   // stages. The local dashboard remains unchanged at `/`.
-  if (pathname === "/welcome" || pathname.startsWith("/welcome/")) {
+  if (usesStandaloneShell(pathname)) {
     return <>{children}</>;
   }
 

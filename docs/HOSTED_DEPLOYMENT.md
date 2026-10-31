@@ -32,10 +32,19 @@ the host's encrypted environment settings:
 
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `CLERK_SECRET_KEY`
+- `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`
+- `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up`
+- `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/app/today`
+- `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/onboarding`
 - `CLERK_WEBHOOK_SIGNING_SECRET`
 
 Do not paste secret keys into Git, issues, screenshots, chat logs, or client-side
 JavaScript. Clerk integration must protect server routes as well as pages.
+
+For local account testing, put development values in `web/.env.local`. That
+file is ignored by Git. When both Clerk keys are absent, hosted routes remain a
+sample-only preview; when both are present, `/onboarding`, `/app/*`, and
+`/api/hosted/*` require a real authenticated Clerk session.
 
 ## 4. Provision tenant data
 
@@ -88,5 +97,5 @@ After the production deployment is healthy:
 3. Verify TLS, Clerk production redirects, canonical URLs, email links, and
    webhook endpoints.
 4. Keep the previous destination available until DNS and login are verified.
-5. Publish the hosted beta as free with fair-use safeguards and keep the local
+5. Publish the hosted launch as free with fair-use safeguards and keep the local
    installation instructions visible.

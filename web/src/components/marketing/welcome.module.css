@@ -270,6 +270,79 @@
 .footer nav a:hover { color: var(--ink); }
 .footer > span { text-align: right; }
 
+/* The marketing experience shares the same persisted theme as auth and the
+   workspace. Keep the editorial character while replacing fixed paper-white
+   surfaces with calm ink-and-teal glass in dark mode. */
+:global(.dark) .root {
+  --paper: #071211;
+  --paper-strong: #0d1d1b;
+  --ink: #f0fdfa;
+  --muted: #9cc6c0;
+  --line: rgba(156, 198, 192, 0.17);
+  --violet: #a5a7ff;
+  --violet-dark: #c7c9ff;
+  --violet-soft: rgba(102, 105, 216, 0.18);
+  --mint: #5eead4;
+  --mint-soft: rgba(45, 212, 191, 0.13);
+  background:
+    radial-gradient(circle at 12% 9%, rgba(89, 92, 190, 0.22), transparent 28rem),
+    radial-gradient(circle at 92% 34%, rgba(34, 121, 106, 0.2), transparent 30rem),
+    var(--paper);
+}
+
+:global(.dark) .secondaryCta,
+:global(.dark) .orbit span,
+:global(.dark) .focusCard,
+:global(.dark) .workspace,
+:global(.dark) .roleSelected,
+:global(.dark) .roleButton:hover,
+:global(.dark) .stackRow b,
+:global(.dark) .nextAction button,
+:global(.dark) .weekFlow article,
+:global(.dark) .reviewHeader,
+:global(.dark) .reviewSummary > div,
+:global(.dark) .reviewFooter {
+  background: rgba(13, 29, 27, 0.9);
+}
+
+:global(.dark) .secondaryCta:hover,
+:global(.dark) .weekFlow article:hover { background: #15302c; }
+
+:global(.dark) .focusCard,
+:global(.dark) .weekFlow article,
+:global(.dark) .reviewDialog { border-color: rgba(156, 198, 192, 0.18); }
+
+:global(.dark) .focusRail span,
+:global(.dark) .stackRow,
+:global(.dark) .reviewHeader > button { background: #172b29; }
+
+:global(.dark) .stageTabs button:hover,
+:global(.dark) .reviewHeader > button:hover { background: #1b3430; }
+
+:global(.dark) .roleList { background: rgba(8, 24, 22, 0.78); }
+
+:global(.dark) .signalGrid > div,
+:global(.dark) .resumeChoice,
+:global(.dark) .evidenceChoice,
+:global(.dark) .pipelineDemo > div,
+:global(.dark) .prepareDemo article { background: #0f2320; }
+
+:global(.dark) .gapChoice { color: #f7d6c5; background: #2a1b16; }
+:global(.dark) .pipelineDemo .pipelineDone { background: #102923; }
+:global(.dark) .pipelineDemo > div::after { background: #29413e; }
+:global(.dark) .pipelineDemo > div > span { color: var(--muted); background: #1a302d; }
+:global(.dark) .nextAction { background: linear-gradient(110deg, var(--violet-soft), rgba(13, 29, 27, 0.92)); }
+
+:global(.dark) .reviewBackdrop { background: rgba(2, 8, 7, 0.76); }
+:global(.dark) .reviewDialog { background: #091916; }
+:global(.dark) .reviewBody,
+:global(.dark) .reviewBody > div { background: transparent; }
+
+:global(.dark) .finalCta {
+  background: linear-gradient(110deg, rgba(13, 29, 27, 0.94), rgba(33, 35, 78, 0.68));
+  border-color: rgba(165, 167, 255, 0.2);
+}
+
 @keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes float { 0%, 100% { transform: translate3d(0,0,0); } 50% { transform: translate3d(1.8rem,-1.4rem,0); } }
 @keyframes spin { to { transform: rotate(360deg); } }

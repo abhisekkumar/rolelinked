@@ -1,13 +1,36 @@
 .page {
+  --legal-ink: #23223a;
+  --legal-muted: #5d596f;
+  --legal-subtle: #827e94;
+  --legal-accent: #735ed2;
+  --legal-accent-strong: #5946b5;
+  --legal-surface: rgba(255, 255, 255, 0.82);
+  --legal-soft: rgba(240, 237, 255, 0.68);
+  --legal-line: rgba(75, 69, 111, 0.12);
   min-height: 100vh;
   overflow: hidden;
   position: relative;
-  color: #23223a;
+  color: var(--legal-ink);
   background:
     radial-gradient(circle at 15% 0%, rgba(191, 181, 255, 0.42), transparent 34rem),
     radial-gradient(circle at 96% 22%, rgba(138, 224, 191, 0.32), transparent 30rem),
     #f7f6fb;
   padding: clamp(7rem, 11vw, 9rem) clamp(1.25rem, 4vw, 4rem) clamp(1.25rem, 4vw, 4rem);
+}
+
+:global(.dark) .page {
+  --legal-ink: #f0fdfa;
+  --legal-muted: #9cc6c0;
+  --legal-subtle: #78a9a2;
+  --legal-accent: #a5a7ff;
+  --legal-accent-strong: #c7c9ff;
+  --legal-surface: rgba(13, 29, 27, 0.9);
+  --legal-soft: rgba(102, 105, 216, 0.16);
+  --legal-line: rgba(156, 198, 192, 0.17);
+  background:
+    radial-gradient(circle at 15% 0%, rgba(91, 94, 201, 0.2), transparent 34rem),
+    radial-gradient(circle at 96% 22%, rgba(37, 126, 108, 0.2), transparent 30rem),
+    #071211;
 }
 
 .glow {
@@ -26,28 +49,28 @@
   width: min(100%, 52rem);
   margin: 0 auto;
   padding: clamp(1.5rem, 5vw, 4rem);
-  border: 1px solid rgba(75, 69, 111, 0.12);
+  border: 1px solid var(--legal-line);
   border-radius: 2rem;
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--legal-surface);
   box-shadow: 0 28px 80px rgba(45, 40, 81, 0.1);
   backdrop-filter: blur(18px);
 }
 
 .backLink {
   display: inline-flex;
-  color: #595178;
+  color: var(--legal-muted);
   font-size: 0.9rem;
   font-weight: 700;
   text-decoration: none;
 }
 
 .backLink:hover {
-  color: #634bd5;
+  color: var(--legal-accent);
 }
 
 .eyebrow {
   margin: 4rem 0 0.8rem;
-  color: #735ed2;
+  color: var(--legal-accent);
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -57,7 +80,7 @@
 .document h1 {
   max-width: 12ch;
   margin: 0;
-  color: #24213c;
+  color: var(--legal-ink);
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(2.5rem, 7vw, 4.8rem);
   font-weight: 500;
@@ -68,14 +91,14 @@
 .lede {
   max-width: 43rem;
   margin: 1.5rem 0 0;
-  color: #5b5870;
+  color: var(--legal-muted);
   font-size: clamp(1rem, 2.4vw, 1.2rem);
   line-height: 1.7;
 }
 
 .updated {
   margin-top: 1rem;
-  color: #827e94;
+  color: var(--legal-subtle);
   font-size: 0.82rem;
 }
 
@@ -92,8 +115,8 @@
   padding: 0.65rem 0.85rem;
   border: 1px solid rgba(99, 75, 213, 0.18);
   border-radius: 999px;
-  color: #5946b5;
-  background: rgba(240, 237, 255, 0.68);
+  color: var(--legal-accent-strong);
+  background: var(--legal-soft);
   font-size: 0.85rem;
   font-weight: 700;
   text-decoration: none;
@@ -103,25 +126,25 @@
 .jumpLinks a:hover,
 .linkGrid a:hover {
   transform: translateY(-2px);
-  background: #eeeaff;
+  background: color-mix(in srgb, var(--legal-soft) 70%, var(--legal-surface));
 }
 
 .document section {
   scroll-margin-top: 2rem;
   margin-top: 3.5rem;
   padding-top: 2rem;
-  border-top: 1px solid rgba(65, 59, 97, 0.1);
+  border-top: 1px solid var(--legal-line);
 }
 
 .document h2 {
   margin: 0 0 1rem;
-  color: #2b2840;
+  color: var(--legal-ink);
   font-size: 1.35rem;
 }
 
 .document section p,
 .document li {
-  color: #5d596f;
+  color: var(--legal-muted);
   font-size: 0.98rem;
   line-height: 1.75;
 }
@@ -143,8 +166,8 @@
   margin-top: 4rem;
   padding: 1rem 1.2rem;
   border-radius: 1rem;
-  color: #5f587a;
-  background: rgba(232, 228, 252, 0.72);
+  color: var(--legal-muted);
+  background: var(--legal-soft);
   font-size: 0.85rem;
   line-height: 1.6;
 }

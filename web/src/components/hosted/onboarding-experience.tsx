@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { CoMark } from "@/components/co-mark";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { instrumentSerif } from "@/lib/fonts";
 
 import styles from "./onboarding-experience.module.css";
@@ -52,7 +53,10 @@ export function OnboardingExperience() {
           <CoMark size={35} />
           <span className={instrumentSerif.className}>RoleLinked</span>
         </Link>
-        <Link href="/app/today" className={styles.skip}>Preview workspace <ArrowRight /></Link>
+        <div className={styles.headerActions}>
+          <ThemeToggle className={styles.themeToggle} />
+          <Link href="/app/today" className={styles.skip}>Preview workspace <ArrowRight /></Link>
+        </div>
       </header>
 
       <section className={styles.frame}>

@@ -16,10 +16,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.82);
+  border: 1px solid color-mix(in srgb, var(--fg) 13%, transparent);
   border-radius: 1.35rem;
-  background: rgba(255, 255, 255, 0.74);
-  box-shadow: 0 12px 38px rgba(40, 48, 89, 0.1);
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  box-shadow: 0 12px 38px color-mix(in srgb, var(--fg) 10%, transparent);
   backdrop-filter: blur(22px) saturate(135%);
   -webkit-backdrop-filter: blur(22px) saturate(135%);
   pointer-events: auto;
@@ -29,7 +29,7 @@
   display: flex;
   align-items: center;
   gap: 0.82rem;
-  color: #20233d;
+  color: var(--fg);
   font-size: 1.65rem;
   text-decoration: none;
 }
@@ -38,7 +38,7 @@
   display: flex;
   align-items: center;
   gap: 2.35rem;
-  color: #66708b;
+  color: var(--muted);
   font-size: 0.88rem;
 }
 
@@ -49,14 +49,14 @@
 }
 
 .previewLink {
-  color: #59627d;
+  color: var(--muted);
   font-size: 0.8rem;
   font-weight: 700;
   text-decoration: none;
   transition: color 180ms ease;
 }
 
-.previewLink:hover { color: #20233d; }
+.previewLink:hover { color: var(--fg); }
 
 .nav a {
   text-decoration: none;
@@ -64,8 +64,20 @@
 }
 
 .nav a:hover {
-  color: #20233d;
+  color: var(--fg);
 }
+
+.themeToggle {
+  width: 2.35rem !important;
+  height: 2.35rem !important;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--fg) 14%, transparent) !important;
+  border-radius: 999px !important;
+  color: var(--fg) !important;
+  background: color-mix(in srgb, var(--surface) 70%, transparent) !important;
+}
+
+.themeToggle:hover { background: var(--surface-hover) !important; }
 
 .headerCta {
   padding: 0.75rem 1.05rem;

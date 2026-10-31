@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { CoMark } from "@/components/co-mark";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { instrumentSerif } from "@/lib/fonts";
 
 import styles from "./marketing-header.module.css";
@@ -27,6 +28,7 @@ export function MarketingHeader() {
 
         <div className={styles.headerActions}>
           <Link href="/app/today" className={styles.previewLink}>Workspace preview</Link>
+          <ThemeToggle className={styles.themeToggle} />
           <Link href="/onboarding" className={styles.headerCta}>
             Start free <ArrowRight aria-hidden="true" />
           </Link>

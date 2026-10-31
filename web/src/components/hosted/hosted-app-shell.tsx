@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 
 import { CoMark } from "@/components/co-mark";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { instrumentSerif } from "@/lib/fonts";
 import type { HostedIdentity } from "@/lib/hosted/identity";
 
@@ -77,6 +78,7 @@ export function HostedAppShell({ children, identity }: { children: React.ReactNo
         </nav>
 
         <div className={styles.sidebarFooter}>
+          <ThemeToggle className={styles.sidebarTheme} showLabel />
           <Link href="/onboarding"><Settings /> Finish setup</Link>
           <div className={styles.accountCard}>
             {identity.mode === "clerk" ? <UserButton /> : <span>RL</span>}
@@ -95,6 +97,7 @@ export function HostedAppShell({ children, identity }: { children: React.ReactNo
           <div className={styles.searchPreview}><Search /><span>Search roles, applications, and documents</span><kbd>⌘ K</kbd></div>
           <div className={styles.topbarActions}>
             <span className={styles.safeBadge}>{identity.mode === "preview" ? "Sample workspace" : "Private workspace"}</span>
+            <ThemeToggle className={styles.topbarTheme} />
             <Link href="/onboarding">Finish setup</Link>
           </div>
         </header>

@@ -1,4 +1,5 @@
 .page { --ink:#20233d; --muted:#68708a; --line:rgba(63,72,113,.13); --violet:#6265d4; --violet-soft:#ececff; --mint:#4f9385; max-width:92rem; margin:0 auto; padding:2.6rem 3rem 4rem; }
+:global(.dark) .page { --ink:#f0fdfa; --muted:#9cc6c0; --line:rgba(156,198,192,.17); --violet:#a5a7ff; --violet-soft:rgba(102,105,216,.18); --mint:#5eead4; }
 .headingRow { display:grid; grid-template-columns:1fr auto; gap:2rem; align-items:end; }
 .eyebrow,.sectionHeading span { color:#7377d2; font-size:.64rem; font-weight:850; letter-spacing:.13em; text-transform:uppercase; }
 .headingRow h1 { margin-top:.55rem; max-width:48rem; font-size:clamp(2.8rem,4.8vw,4.8rem); line-height:.95; font-weight:400; letter-spacing:-.045em; }
@@ -28,3 +29,23 @@
 @media(max-width:760px){.page{padding:1.6rem 1rem 3rem}.headingRow{grid-template-columns:1fr}.headingRow h1{font-size:3.1rem}.scanStatus{min-width:0}.metricGrid{grid-template-columns:1fr 1fr}.focusList article{grid-template-columns:auto 1fr}.focusList button{grid-column:1/-1;width:100%}.insightColumn{grid-template-columns:1fr}.activityList>div{grid-template-columns:auto 1fr}.activityList small{grid-column:2}.sectionHeading{align-items:start}.sectionHeading>small{display:none}}
 @media(max-width:460px){.metricGrid{grid-template-columns:1fr}.headingRow h1{font-size:2.65rem}}
 @media(prefers-reduced-motion:reduce){.focusList article{transition:none}}
+
+:global(.dark) .scanStatus { color:var(--ink); background:rgba(45,212,191,.09); }
+:global(.dark) .scanStatus small { color:var(--muted); }
+:global(.dark) .metricGrid article,
+:global(.dark) .focusColumn,
+:global(.dark) .weekCard,
+:global(.dark) .activityCard,
+:global(.dark) .nextScanCard { color:var(--ink); background:rgba(13,29,27,.84); }
+:global(.dark) .focusList article { color:var(--ink); background:#102522; }
+:global(.dark) .focusList button { color:var(--violet); background:#0d1d1b; }
+:global(.dark) .focusList button:disabled,
+:global(.dark) .doneCard { color:var(--mint); background:#102923 !important; }
+:global(.dark) .metricGrid small,
+:global(.dark) .actionCopy small,
+:global(.dark) .demoHint,
+:global(.dark) .chartLabels,
+:global(.dark) .sectionHeading button,
+:global(.dark) .activityList small { color:var(--muted); }
+:global(.dark) .upBadge { background:rgba(45,212,191,.12); }
+:global(.dark) .nextScanCard button { color:var(--muted); background:#102522; }

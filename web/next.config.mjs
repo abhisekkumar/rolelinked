@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Hosted local previews bind to `localhost` so Clerk and Next agree on the
+  // canonical origin. Existing local links may still use the equivalent IPv4
+  // loopback spelling; permit that spelling for dev assets only. This does not
+  // admit LAN hosts and has no effect in production.
+  allowedDevOrigins: ["127.0.0.1"],
   // Two lockfiles exist on purpose (repo root + web/), so Next would infer the
   // repo root as the workspace root. On Windows that misinference can send
   // Turbopack's postcss workers into an unbounded respawn loop that exhausts

@@ -31,6 +31,7 @@ import { isIP } from "node:net";
 import { parseAllowedHosts, isLoopbackHost } from "./origin-guard.mjs";
 
 export const LOOPBACK_BIND = "127.0.0.1";
+export const HOSTNAME_LOOPBACK_BIND = "localhost";
 export const ALL_INTERFACES_BIND = "0.0.0.0";
 
 /** The `next` subcommands this launcher fronts. */
@@ -304,12 +305,13 @@ export function hasHostFlag(extra) {
  * @param {string|undefined} input.command   argv[2] — a NEXT_COMMANDS entry
  * @param {string[]} [input.extra]           remaining argv, forwarded verbatim
  * @param {string|undefined} input.envValue  CAREER_OPS_WEB_ALLOWED_HOSTS
+ * @param {string} [input.loopbackBind]      loopback spelling to inject when no wider host is requested
  * @returns {{ok: true, argv: string[], bindHost: string, hostFlagSupplied: boolean,
  *            widened: boolean, allowedHosts: string[], grantsNoNewHost: boolean,
  *            loopbackUnreachable: boolean}
  *          | {ok: false, error: string}}
  */
-export function planNextRun({ command, extra = [], envValue }) {
+export function planNextRun({ command, extra = [], envValue, loopbackBind = LOOPBACK_BIND }) {
   if (!NEXT_COMMANDS.includes(command)) {
     return {
       ok: false,
@@ -321,9 +323,16 @@ export function planNextRun({ command, extra = [], envValue }) {
 
   const validation = validateAllowedHosts(envValue);
   if (!validation.ok) return validation;
+  if (!isLoopbackHost(loopbackBind)) {
+    return {
+      ok: false,
+      error: `The requested loopback bind "${loopbackBind}" is not a loopback host.`,
+    };
+  }
 
   const { hosts: allowedHosts } = validation;
-  const bindHost = resolveBindHost(envValue);
+  const resolvedBindHost = resolveBindHost(envValue);
+  const bindHost = resolvedBindHost === LOOPBACK_BIND ? loopbackBind : resolvedBindHost;
   const hostFlagSupplied = hasHostFlag(extra);
   const widened = isWidenedBind(bindHost);
 

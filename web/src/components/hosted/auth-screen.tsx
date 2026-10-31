@@ -8,6 +8,14 @@ import { isHostedAuthConfigured } from "@/lib/hosted/config.mjs";
 
 import styles from "./auth-screen.module.css";
 
+const authAppearance = {
+  elements: {
+    rootBox: styles.clerkRoot,
+    cardBox: styles.clerkCardBox,
+    card: styles.clerkCard,
+  },
+};
+
 export function AuthScreen({ mode }: { mode: "sign-in" | "sign-up" }) {
   const configured = isHostedAuthConfigured();
   const creating = mode === "sign-up";
@@ -30,9 +38,21 @@ export function AuthScreen({ mode }: { mode: "sign-in" | "sign-up" }) {
         <div className={styles.panel}>
           {configured ? (
             creating ? (
-              <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" fallbackRedirectUrl="/onboarding" />
+              <SignUp
+                appearance={authAppearance}
+                routing="path"
+                path="/sign-up"
+                signInUrl="/sign-in"
+                fallbackRedirectUrl="/onboarding"
+              />
             ) : (
-              <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" fallbackRedirectUrl="/app/today" />
+              <SignIn
+                appearance={authAppearance}
+                routing="path"
+                path="/sign-in"
+                signUpUrl="/sign-up"
+                fallbackRedirectUrl="/app/today"
+              />
             )
           ) : (
             <div className={styles.pending}>

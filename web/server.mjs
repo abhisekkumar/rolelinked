@@ -15,15 +15,32 @@ import { createRequire } from "node:module";
 import os from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { planNextRun } from "./src/lib/bind-host.mjs";
+import nextEnv from "@next/env";
+import { HOSTNAME_LOOPBACK_BIND, planNextRun } from "./src/lib/bind-host.mjs";
+import { isHostedDeployment } from "./src/lib/deployment-mode.mjs";
+import { isHostedAuthConfigured } from "./src/lib/hosted/config.mjs";
 
 const requireHere = createRequire(import.meta.url);
+const webRoot = dirname(fileURLToPath(import.meta.url));
 const [command, ...extra] = process.argv.slice(2);
+
+// The launcher makes its bind decision before Next starts, so load the same
+// environment files Next will load. This lets a hosted Clerk preview choose the
+// compatible loopback spelling without asking users to export keys in a shell.
+nextEnv.loadEnvConfig(webRoot, command === "dev");
 
 const plan = planNextRun({
   command,
   extra,
   envValue: process.env.CAREER_OPS_WEB_ALLOWED_HOSTS,
+  // Next 16 normalizes 127.0.0.1 to localhost while Clerk middleware is active.
+  // If the listener keeps the numeric spelling, Next can misclassify the
+  // rewritten request as external and proxy it to an address with no listener.
+  // `localhost` is still loopback-only; this changes spelling, not exposure.
+  loopbackBind:
+    isHostedDeployment(process.env.ROLELINKED_DEPLOYMENT_MODE) && isHostedAuthConfigured()
+      ? HOSTNAME_LOOPBACK_BIND
+      : undefined,
 });
 if (!plan.ok) {
   console.error(plan.error);
@@ -93,7 +110,7 @@ try {
 // do meanwhile. The terminal delivers SIGINT to the whole foreground group, so
 // next shuts itself down; re-signalling it from here would only double up.
 const result = spawnSync(process.execPath, [nextEntry, ...plan.argv], {
-  cwd: dirname(fileURLToPath(import.meta.url)),
+  cwd: webRoot,
   stdio: "inherit",
 });
 

@@ -24,7 +24,7 @@ Job searching usually splits information across job boards, spreadsheets, resume
 
 | Edition | Best for | Data and execution |
 |---|---|---|
-| Hosted at `rolelinked.com` | People who want to create an account and start immediately | Clerk-authenticated, tenant-isolated cloud storage and background workers; free beta with fair-use safeguards |
+| Hosted at `rolelinked.com` | People who want to create an account and start immediately | Clerk-authenticated, tenant-isolated cloud storage and background workers; free at launch with fair-use safeguards |
 | Self-hosted/local | People who want maximum privacy, customization, and control | Files, resumes, CLIs, and model credentials stay on the user's machine |
 
 The hosted edition will use the same product language and core workflows, but it

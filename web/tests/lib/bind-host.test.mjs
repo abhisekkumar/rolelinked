@@ -19,6 +19,7 @@ import assert from "node:assert/strict";
 import { parseAllowedHosts, isLoopbackHost } from "../../src/lib/origin-guard.mjs";
 import {
   LOOPBACK_BIND,
+  HOSTNAME_LOOPBACK_BIND,
   ALL_INTERFACES_BIND,
   NEXT_COMMANDS,
   validateAllowedHosts,
@@ -317,6 +318,27 @@ test("each supported command builds argv with the bind ahead of forwarded flags"
     assert.equal(plan.widened, false);
     assert.equal(plan.hostFlagSupplied, false);
   }
+});
+
+test("a caller may select the hostname spelling of loopback without widening", () => {
+  const plan = planNextRun({
+    command: "dev",
+    extra: ["-p", "3011"],
+    envValue: undefined,
+    loopbackBind: HOSTNAME_LOOPBACK_BIND,
+  });
+
+  assert.equal(plan.ok, true);
+  assert.deepEqual(plan.argv, ["dev", "-H", "localhost", "-p", "3011"]);
+  assert.equal(plan.bindHost, "localhost");
+  assert.equal(plan.widened, false);
+});
+
+test("a non-loopback override is refused instead of becoming an exposure escape hatch", () => {
+  const plan = planNextRun({ command: "dev", loopbackBind: "0.0.0.0" });
+
+  assert.equal(plan.ok, false);
+  assert.match(plan.error, /not a loopback host/);
 });
 
 test("an opt-in that widens is reported along with the hosts that caused it", () => {

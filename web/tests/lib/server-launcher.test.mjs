@@ -38,6 +38,17 @@ function stubbedWebRoot({ body, install = true } = {}) {
   const root = mkdtempSync(join(tmpdir(), "career-ops-launcher-"));
   cpSync(join(WEB_ROOT, "server.mjs"), join(root, "server.mjs"));
   cpSync(join(WEB_ROOT, "src", "lib"), join(root, "src", "lib"), { recursive: true });
+
+  const envDir = join(root, "node_modules", "@next", "env");
+  mkdirSync(envDir, { recursive: true });
+  writeFileSync(
+    join(envDir, "package.json"),
+    JSON.stringify({ name: "@next/env", version: "0.0.0-stub", main: "index.js" }),
+  );
+  writeFileSync(
+    join(envDir, "index.js"),
+    "module.exports = { loadEnvConfig() {} };\n",
+  );
   if (!install) return root;
 
   const nextDir = join(root, "node_modules", "next");
@@ -89,6 +100,21 @@ test("with no opt-in, next is told to bind loopback", () => {
   assert.deepEqual(run.argv, ["dev", "-H", "127.0.0.1"]);
   assert.ok(run.stderr.includes("binding 127.0.0.1"), `stderr was: ${run.stderr}`);
   assert.ok(run.stderr.includes("loopback only"), "a loopback bind should be stated plainly");
+});
+
+test("hosted Clerk preview uses the localhost spelling without leaving loopback", () => {
+  const run = launch({
+    args: ["dev"],
+    env: {
+      ROLELINKED_DEPLOYMENT_MODE: "hosted",
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_example",
+      CLERK_SECRET_KEY: "sk_test_example",
+    },
+  });
+
+  assert.deepEqual(run.argv, ["dev", "-H", "localhost"]);
+  assert.ok(run.stderr.includes("binding localhost"), `stderr was: ${run.stderr}`);
+  assert.ok(run.stderr.includes("loopback only"));
 });
 
 test("a blank opt-in is not an opt-in", () => {

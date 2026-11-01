@@ -1,10 +1,58 @@
+import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import type { NextFetchEvent, NextRequest } from "next/server";
 import {
   checkRequest,
   parseAllowedHosts,
   parseAllowedOrigins,
 } from "@/lib/origin-guard.mjs";
+import {
+  hostedRouteDecision,
+  isHostedProtectedPath,
+  isHostedDeployment,
+} from "@/lib/deployment-mode.mjs";
+import { isHostedAuthConfigured } from "@/lib/hosted/config.mjs";
+
+function hostedRouteGuard(req: NextRequest) {
+  const route = hostedRouteDecision(req.nextUrl.pathname);
+  if (route.action === "redirect" && route.pathname) {
+    return NextResponse.redirect(new URL(route.pathname, req.url));
+  }
+  if (route.action === "allow") return NextResponse.next();
+
+  return NextResponse.json(
+    { error: "This local-only RoleLinked route is unavailable in hosted mode." },
+    { status: 404 },
+  );
+}
+
+const hostedClerkProxy = clerkMiddleware(async (auth, req) => {
+  const route = hostedRouteDecision(req.nextUrl.pathname);
+  if (route.action === "redirect" && route.pathname) {
+    return NextResponse.redirect(new URL(route.pathname, req.url));
+  }
+  if (route.action !== "allow") {
+    return NextResponse.json(
+      { error: "This local-only RoleLinked route is unavailable in hosted mode." },
+      { status: 404 },
+    );
+  }
+
+  if (isHostedProtectedPath(req.nextUrl.pathname)) {
+    const session = await auth();
+    if (!session.userId) {
+      if (req.nextUrl.pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+      }
+
+      const signIn = new URL("/sign-in", req.url);
+      signIn.searchParams.set("redirect_url", `${req.nextUrl.pathname}${req.nextUrl.search}`);
+      return NextResponse.redirect(signIn);
+    }
+  }
+
+  return NextResponse.next();
+});
 
 // Single choke point over everything the dashboard serves. Every request is
 // gated on the same-origin + loopback guard before it can reach a route handler
@@ -20,7 +68,12 @@ import {
 // was. It is what a local companion client needs: a browser extension calls
 // from a chrome-extension:// origin, which Fetch Metadata always reports as
 // "cross-site", so every one of its requests is refused otherwise.
-export function proxy(req: NextRequest) {
+export function proxy(req: NextRequest, event: NextFetchEvent) {
+  if (isHostedDeployment(process.env.ROLELINKED_DEPLOYMENT_MODE)) {
+    if (isHostedAuthConfigured()) return hostedClerkProxy(req, event);
+    return hostedRouteGuard(req);
+  }
+
   const decision = checkRequest({
     secFetchSite: req.headers.get("sec-fetch-site"),
     origin: req.headers.get("origin"),

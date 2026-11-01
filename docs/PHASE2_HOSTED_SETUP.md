@@ -28,12 +28,24 @@ NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/app/today
 NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/onboarding
 DATABASE_URL=...
+DATABASE_URL_UNPOOLED=...
 BLOB_READ_WRITE_TOKEN=...
+QSTASH_TOKEN=...
+QSTASH_CURRENT_SIGNING_KEY=...
+QSTASH_NEXT_SIGNING_KEY=...
+# Optional when the QStash project uses US East:
+QSTASH_URL=https://qstash-us-east-1.upstash.io
 ```
 
 Connecting Neon and a Private Blob store through the Vercel project normally
 injects the database and Blob credentials. Verify the exact variable names in
-Vercel after connecting each resource.
+Vercel after connecting each resource. QStash credentials come from the QStash
+Quickstart page, not from an Upstash Redis database. Redis credentials are not
+needed for Phase 2.
+
+`DATABASE_URL` is the pooled runtime connection. `DATABASE_URL_UNPOOLED` is the
+direct connection preferred for migrations. Keep both server-only; neither name
+may use a `NEXT_PUBLIC_` prefix.
 
 ## Apply the database migrations
 

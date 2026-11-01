@@ -10,8 +10,10 @@ export default defineConfig({
   strict: true,
   verbose: true,
   dbCredentials: {
-    // Generation only needs a syntactically valid URL. Migrations still fail
-    // closed unless the deployment supplies the real Neon DATABASE_URL.
-    url: process.env.DATABASE_URL ?? "postgresql://rolelinked:rolelinked@localhost:5432/rolelinked",
+    // Prefer Neon's direct connection for migrations. Runtime requests use the
+    // pooled DATABASE_URL through the serverless driver.
+    url: process.env.DATABASE_URL_UNPOOLED
+      ?? process.env.DATABASE_URL
+      ?? "postgresql://rolelinked:rolelinked@localhost:5432/rolelinked",
   },
 });

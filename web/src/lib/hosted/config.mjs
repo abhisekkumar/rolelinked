@@ -20,11 +20,19 @@ export function isHostedObjectStorageConfigured(env = process.env) {
   return Boolean(token || (oidc && storeId));
 }
 
+export function isHostedSchedulerConfigured(env = process.env) {
+  return Boolean(
+    String(env.QSTASH_TOKEN || "").trim()
+    && String(env.QSTASH_CURRENT_SIGNING_KEY || "").trim()
+    && String(env.QSTASH_NEXT_SIGNING_KEY || "").trim(),
+  );
+}
+
 export function getHostedServiceReadiness(env = process.env) {
   const auth = isHostedAuthConfigured(env);
   const database = isHostedDatabaseConfigured(env);
   const objectStorage = isHostedObjectStorageConfigured(env);
-  const scheduler = Boolean(String(env.SCHEDULER_SIGNING_SECRET || "").trim());
+  const scheduler = isHostedSchedulerConfigured(env);
   const modelGateway = Boolean(String(env.LLM_GATEWAY_API_KEY || "").trim());
 
   return {

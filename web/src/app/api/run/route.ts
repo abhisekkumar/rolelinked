@@ -23,7 +23,10 @@ import { createRunFinalizer } from "@/lib/run-finalizer.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 800; // a real oferta evaluation / pdf-mode CV tailoring + render is heavy and multi-step
+// Hosted requests must stay within Vercel Hobby's 300-second function ceiling.
+// Long local-first evaluation and PDF jobs still use their existing child-process
+// budgets; hosted execution will move to the durable worker queue in Phase 4.
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   let body: { kind?: string; input?: string; cliId?: string };
@@ -258,7 +261,7 @@ export async function POST(req: Request) {
       let lastCostUsd: number | null = null;
       // pdf-mode's agent only tailors content now (rendering moved to the
       // backend, #2172) — but its killMs still has to leave real headroom
-      // inside the route's overall maxDuration (800s): the render+mark phase
+      // inside the local worker's overall time budget: the render+mark phase
       // (renderPdf, below) starts only after this timer's window and has no
       // timeout of its own, so an agent that runs close to its full budget
       // would otherwise leave the platform's hard maxDuration cutoff to kill
@@ -266,12 +269,14 @@ export async function POST(req: Request) {
       // a Chromium PDF render normally takes low tens of seconds even with a
       // cold Playwright launch.
       // pdf keeps 600s because its render+mark phase runs AFTER this timer; a
-      // plain evaluate has no such phase, so it can use almost the whole 800s
+      // plain evaluate has no such phase, so it can use almost the whole local
+      // worker budget
       // budget. 285s was cutting real evaluations off mid-run — reading the mode
       // and profile, fetching the posting, ~25 Bash calls and a few web searches
       // routinely run past it — and the SIGTERM then surfaced as "didn't save a
       // report" (see the close handler), blaming the CLI for a limit we imposed
-      // (#3124). 780s leaves ~20s under maxDuration for a graceful shutdown.
+      // (#3124). 780s leaves ~20s under the local worker budget for a graceful
+      // shutdown.
       const killMs = killMsForKind(kind);
       // Set by the killer so the close handler can tell "we timed it out" apart
       // from "the CLI exited on its own" — different failures, different message.
@@ -286,7 +291,7 @@ export async function POST(req: Request) {
           controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
         } catch {
           // The client is gone. Stop the heartbeat here rather than waiting for
-          // close(): the child can still run for minutes (maxDuration 800s), and
+          // close(): the child can still run for minutes, and
           // a user retrying a failed run would otherwise accumulate one live
           // timer per abandoned request.
           closed = true;

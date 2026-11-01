@@ -9,7 +9,9 @@ import { extractJsonObject } from "@/lib/extract-json-object.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 320;
+// Vercel Hobby accepts at most 300 seconds for a serverless function. Keep the
+// local planner's own timeout logic independent from this deployment ceiling.
+export const maxDuration = 300;
 
 // AI pre-fill (STREAMING NDJSON). The user's BYO CLI (read-only PLANNER — no
 // browser access) drafts an answer per field from cv.md / profile / the job's

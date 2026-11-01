@@ -27,7 +27,9 @@ const CODEX_OUTPUT_FLAG = "--output-last-message";
 // cannot persist; the only writes happen when the user later ADDs a candidate.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 600;
+// Hosted AI search will move to the durable queue; the request handler itself
+// must remain valid on Vercel Hobby in the meantime.
+export const maxDuration = 300;
 
 const OUTPUT_CONTRACT = `
 

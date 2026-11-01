@@ -13,10 +13,23 @@ import {
 } from "../../src/lib/deployment-mode.mjs";
 
 test("hosted mode is explicit and case-insensitive", () => {
-  assert.equal(isHostedDeployment("hosted"), true);
-  assert.equal(isHostedDeployment(" HOSTED "), true);
-  assert.equal(isHostedDeployment("local"), false);
-  assert.equal(isHostedDeployment(undefined), false);
+  const localEnvironment = {};
+  assert.equal(isHostedDeployment("hosted", localEnvironment), true);
+  assert.equal(isHostedDeployment(" HOSTED ", localEnvironment), true);
+  assert.equal(isHostedDeployment("local", localEnvironment), false);
+  assert.equal(isHostedDeployment(undefined, localEnvironment), false);
+});
+
+test("Vercel deployments fail closed into hosted mode when the explicit setting is missing", () => {
+  assert.equal(isHostedDeployment(undefined, { VERCEL: "1" }), true);
+  assert.equal(isHostedDeployment(undefined, { VERCEL_ENV: "preview" }), true);
+  assert.equal(isHostedDeployment(undefined, { VERCEL_TARGET_ENV: "production" }), true);
+  assert.equal(
+    isHostedDeployment("local", { VERCEL: "1" }),
+    true,
+    "a public Vercel deployment must not expose the filesystem-backed local dashboard",
+  );
+  assert.equal(isHostedDeployment(undefined, { VERCEL: "0", VERCEL_ENV: "" }), false);
 });
 
 test("the hosted root renders the landing page", () => {

@@ -13,5 +13,5 @@ export default async function OnboardingPage() {
   const identity = await getHostedIdentity();
   if (!identity) redirect("/sign-in");
 
-  return <OnboardingExperience />;
+  return <OnboardingExperience persistent={identity.mode === "clerk"} />;
 }

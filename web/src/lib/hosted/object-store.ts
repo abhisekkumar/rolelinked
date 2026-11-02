@@ -34,7 +34,11 @@ export function isPrivateObjectStoreConfigured(env = process.env) {
   const token = String(env.BLOB_READ_WRITE_TOKEN || "").trim();
   const oidc = String(env.VERCEL_OIDC_TOKEN || "").trim();
   const storeId = String(env.BLOB_STORE_ID || "").trim();
-  return Boolean(token || (oidc && storeId));
+  const vercelRuntime = Boolean(
+    String(env.VERCEL || "").trim()
+    || String(env.VERCEL_ENV || "").trim(),
+  );
+  return Boolean(token || (storeId && (oidc || vercelRuntime)));
 }
 
 export async function uploadPrivateResume(ownerId: string, file: File) {

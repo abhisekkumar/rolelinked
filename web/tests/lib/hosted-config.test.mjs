@@ -35,6 +35,11 @@ test("database and private Blob readiness use their platform credentials", () =>
     isHostedObjectStorageConfigured({ VERCEL_OIDC_TOKEN: "private-oidc", BLOB_STORE_ID: "private-store" }),
     true,
   );
+  assert.equal(
+    isHostedObjectStorageConfigured({ VERCEL: "1", BLOB_STORE_ID: "private-store" }),
+    true,
+  );
+  assert.equal(isHostedObjectStorageConfigured({ BLOB_STORE_ID: "private-store" }), false);
   assert.equal(isHostedObjectStorageConfigured({ VERCEL_OIDC_TOKEN: "private-oidc" }), false);
 });
 

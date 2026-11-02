@@ -17,7 +17,7 @@ type Readiness = {
 const definitions = [
   { key: "auth", title: "Accounts", description: "Clerk sign-up, sign-in, and server-enforced workspace identity.", env: "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY + CLERK_SECRET_KEY", icon: KeyRound },
   { key: "database", title: "Workspace database", description: "Neon stores tenant-scoped profiles, jobs, applications, approvals, interviews, and activity.", env: "DATABASE_URL + DATABASE_URL_UNPOOLED", icon: Database },
-  { key: "objectStorage", title: "Private document storage", description: "Vercel Private Blob stores original resumes, tailored PDFs, job-description archives, and interview packets.", env: "BLOB_READ_WRITE_TOKEN", icon: HardDriveUpload },
+  { key: "objectStorage", title: "Private document storage", description: "Vercel Private Blob stores original resumes, tailored PDFs, job-description archives, and interview packets.", env: "BLOB_STORE_ID + Vercel OIDC (or legacy BLOB_READ_WRITE_TOKEN)", icon: HardDriveUpload },
   { key: "scheduler", title: "Scheduled discovery", description: "Upstash QStash provides signed, durable delivery; it never grants permission to apply or message.", env: "QSTASH_TOKEN + QSTASH_*_SIGNING_KEY", icon: CalendarClock },
   { key: "modelGateway", title: "AI preparation", description: "Server-side model access for evaluation and preparation with fair-use limits.", env: "LLM_GATEWAY_API_KEY", icon: Bot },
 ] as const;

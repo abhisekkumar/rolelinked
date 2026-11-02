@@ -32,7 +32,7 @@ const navItems = [
   { label: "Today", href: "/app/today", icon: LayoutDashboard, ready: true },
   { label: "Discover", href: "/app/discover", icon: Compass, ready: false },
   { label: "Pipeline", href: "/app/pipeline", icon: ListChecks, ready: false },
-  { label: "Resumes", href: "/app/resumes", icon: FileText, ready: false },
+  { label: "Resumes", href: "/app/resumes", icon: FileText, ready: true },
   { label: "Documents", href: "/app/documents", icon: FileStack, ready: false },
   { label: "Interviews", href: "/app/interviews", icon: MessageSquareText, ready: false },
   { label: "Follow-ups", href: "/app/follow-ups", icon: Bell, ready: false },
@@ -53,7 +53,7 @@ export function HostedAppShell({ children, identity }: { children: React.ReactNo
           <span className={instrumentSerif.className}>RoleLinked</span>
         </Link>
 
-        <div className={styles.previewBadge}><Sparkles /> Hosted workspace preview</div>
+        <div className={styles.previewBadge}><Sparkles /> {identity.mode === "preview" ? "Hosted workspace preview" : "Private account workspace"}</div>
 
         <nav className={styles.sideNav} aria-label="Workspace navigation">
           {navItems.map(({ label, href, icon: Icon, ready }) => {
@@ -106,7 +106,7 @@ export function HostedAppShell({ children, identity }: { children: React.ReactNo
           <Link href="/app/today" className={pathname === "/app/today" ? styles.activeMobile : undefined}><LayoutDashboard /> Today</Link>
           <span aria-disabled="true"><Compass /> Discover</span>
           <span aria-disabled="true"><ListChecks /> Pipeline</span>
-          <span aria-disabled="true"><FileText /> Resumes</span>
+          <Link href="/app/resumes" className={pathname === "/app/resumes" ? styles.activeMobile : undefined}><FileText /> Resumes</Link>
         </nav>
 
         <main className={styles.main}>{children}</main>

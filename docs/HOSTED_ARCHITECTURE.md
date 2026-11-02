@@ -26,14 +26,14 @@ personal laptop.
 | Identity | Clerk | Existing user choice, mature Next.js integration, account/session management |
 | Relational data | Neon Postgres through the Vercel Marketplace | Strong tenant keys, transactions, reporting, portable SQL, and serverless connectivity |
 | Private files | Vercel Private Blob | Authenticated resume, PDF, and export storage outside Git and database rows |
-| Background execution | Inngest durable functions | Retries, concurrency limits, idempotency, waits, and observable multi-step scans |
+| Background execution | Upstash QStash and Workflow | Managed delivery, retries, concurrency controls, idempotent callbacks, and observable multi-step scans |
 | Schedule trigger | Durable per-user schedule plus one reconciliation tick | Preserves each user's timezone and cadence without creating one Vercel Cron entry per user |
 | AI | Server-side model gateway | Keys never reach browsers; supports budgets, audit logs, fallbacks, and future provider changes |
 | Observability | Structured logs plus error tracing | Diagnoses provider failures without logging resume text or credentials |
 
 Vercel Cron alone is not the per-user scheduler. Cron definitions are deployment
 configuration, are capped per project, run in UTC, and have lower timing
-precision on the Hobby plan. Inngest should hold each user's next scheduled run;
+precision on the Hobby plan. A durable schedule repository plus Upstash should hold each user's next scheduled run;
 a single secured Vercel Cron reconciliation endpoint can recover schedules that
 were interrupted or missed. The dispatcher leases due rows transactionally and
 enqueues idempotent jobs. This avoids duplicate runs, survives deployments, and
@@ -110,7 +110,7 @@ shell commands.
 | `config/profile.yml` and `modes/_profile.md` | `candidate_profiles` and `search_profiles` rows owned by the Clerk user |
 | `cv.md`, LaTeX sources, and generated PDFs | versioned `resumes` metadata in Postgres plus encrypted private Blob objects |
 | `data/pipeline.md` and `data/applications.md` | `job_matches`, `applications`, and append-only `application_events` |
-| `scan.mjs` and provider modules | allow-listed Inngest discovery jobs writing normalized public postings and private user matches |
+| `scan.mjs` and provider modules | allow-listed Upstash Workflow discovery jobs writing normalized public postings and private user matches |
 | CLI-driven evaluation and tailoring | server-side `ModelGateway` jobs with source-bound prompts, budgets, and audit metadata |
 | local scheduled-job JSON | `schedules` and `job_runs` with durable next-run execution and reconciliation |
 | `documents/`, `reports/`, and `interview-prep/` | tenant-scoped document records and private generated artifacts |
@@ -127,7 +127,7 @@ Authenticated route/server action
     ↓
 RoleLinked domain service
     ├── Local adapters: files + approved installed tools
-    └── Hosted adapters: Clerk + Postgres + Private Blob + Inngest + ModelGateway
+    └── Hosted adapters: Clerk + Postgres + Private Blob + Upstash + ModelGateway
 ```
 
 This is the main engineering migration: extract filesystem and process access
@@ -143,7 +143,7 @@ every dashboard page:
 1. Clerk sign-up/sign-in and protected `/app` route;
 2. tenant profile and search preferences in Postgres;
 3. multiple private resume uploads with version metadata;
-4. manual discovery run through an Inngest function;
+4. manual discovery run through an Upstash Workflow;
 5. user-specific match inbox and application tracker;
 6. cross-account denial tests for every read, write, and file download;
 7. account export and deletion.
@@ -209,5 +209,5 @@ candidate data is accepted.
 - [Postgres integrations on Vercel](https://vercel.com/docs/postgres)
 - [Vercel Private Blob storage](https://vercel.com/docs/vercel-blob/private-storage)
 - [Vercel Cron limits and timing](https://vercel.com/docs/cron-jobs/usage-and-pricing)
-- [Inngest schedules and delayed starts](https://www.inngest.com/docs/durable-execution/guides-and-advanced/events-and-triggers/schedules-and-delayed-starts)
-- [Inngest Next.js integration](https://www.inngest.com/docs/getting-started/nextjs-quick-start)
+- [Upstash QStash schedules](https://upstash.com/docs/qstash/features/schedules)
+- [Upstash Workflow for Next.js](https://upstash.com/docs/workflow/quickstarts/vercel-nextjs)

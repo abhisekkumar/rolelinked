@@ -9,16 +9,34 @@ export function isHostedAuthConfigured(env = process.env) {
   );
 }
 
+export function isHostedDatabaseConfigured(env = process.env) {
+  return Boolean(String(env.DATABASE_URL || "").trim());
+}
+
+export function isHostedObjectStorageConfigured(env = process.env) {
+  const token = String(env.BLOB_READ_WRITE_TOKEN || "").trim();
+  const oidc = String(env.VERCEL_OIDC_TOKEN || "").trim();
+  const storeId = String(env.BLOB_STORE_ID || "").trim();
+  const vercelRuntime = Boolean(
+    String(env.VERCEL || "").trim()
+    || String(env.VERCEL_ENV || "").trim(),
+  );
+  return Boolean(token || (storeId && (oidc || vercelRuntime)));
+}
+
+export function isHostedSchedulerConfigured(env = process.env) {
+  return Boolean(
+    String(env.QSTASH_TOKEN || "").trim()
+    && String(env.QSTASH_CURRENT_SIGNING_KEY || "").trim()
+    && String(env.QSTASH_NEXT_SIGNING_KEY || "").trim(),
+  );
+}
+
 export function getHostedServiceReadiness(env = process.env) {
   const auth = isHostedAuthConfigured(env);
-  const database = Boolean(String(env.DATABASE_URL || "").trim());
-  const objectStorage = Boolean(
-    String(env.OBJECT_STORAGE_ENDPOINT || "").trim()
-    && String(env.OBJECT_STORAGE_BUCKET || "").trim()
-    && String(env.OBJECT_STORAGE_ACCESS_KEY_ID || "").trim()
-    && String(env.OBJECT_STORAGE_SECRET_ACCESS_KEY || "").trim(),
-  );
-  const scheduler = Boolean(String(env.SCHEDULER_SIGNING_SECRET || "").trim());
+  const database = isHostedDatabaseConfigured(env);
+  const objectStorage = isHostedObjectStorageConfigured(env);
+  const scheduler = isHostedSchedulerConfigured(env);
   const modelGateway = Boolean(String(env.LLM_GATEWAY_API_KEY || "").trim());
 
   return {

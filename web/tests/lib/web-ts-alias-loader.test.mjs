@@ -32,7 +32,13 @@ const LOADER = pathToFileURL(path.join(HERE, "..", "helpers", "web-ts-alias-load
 function run(src, flags = [], cwd = WEB) {
   try {
     return { ok: true, out: execFileSync(process.execPath, [...flags, "--input-type=module", "-e", src], {
-      cwd, encoding: "utf-8", timeout: 60000, stdio: ["ignore", "pipe", "pipe"],
+      cwd,
+      encoding: "utf-8",
+      timeout: 60000,
+      stdio: ["ignore", "pipe", "pipe"],
+      // Keep assertions deterministic when the parent shell forces coloured
+      // output (for example Codex/Warp setting FORCE_COLOR globally).
+      env: { ...process.env, FORCE_COLOR: "0", NO_COLOR: "1" },
     }).trim() };
   } catch (e) {
     return { ok: false, out: (e.stdout || "").toString().trim(), err: (e.stderr || "").toString() };

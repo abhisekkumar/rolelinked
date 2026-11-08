@@ -1,16 +1,19 @@
 import "server-only";
 
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
 
 import { requireTenantId } from "@/lib/hosted/tenant-scope.mjs";
 import { getHostedDatabase } from "./client";
 import {
   candidateProfiles,
+  hostedJobs,
+  hostedJobStatusEvents,
   resumeVersions,
   resumes,
   searchProfiles,
   users,
 } from "./schema";
+import { assertHostedJobStatus } from "@/lib/core/hosted-job-match.mjs";
 
 export type SearchProfileInput = {
   targetRoles: string[];
@@ -184,5 +187,163 @@ export async function deleteHostedResumeRecord(ownerIdValue: string, resumeId: s
       .delete(resumes)
       .where(and(eq(resumes.ownerId, ownerId), eq(resumes.id, resumeId)))
       .returning({ id: resumes.id });
+  });
+}
+
+export type HostedJobInput = {
+  source: string;
+  sourceJobId?: string;
+  url: string;
+  canonicalUrl: string;
+  company: string;
+  title: string;
+  location?: string;
+  descriptionExcerpt?: string;
+  postedAt?: string | Date | null;
+  matchScore?: number | null;
+  matchReasons?: string[];
+  matchedSkills?: string[];
+  remoteSignal?: string;
+  sponsorshipSignal?: string;
+  compensationMinimum?: number | null;
+  compensationMaximum?: number | null;
+  sourceMetadata?: Record<string, unknown>;
+};
+
+function validDate(value: HostedJobInput["postedAt"]) {
+  if (!value) return null;
+  const parsed = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+export async function upsertHostedJobs(ownerIdValue: string, inputs: HostedJobInput[]) {
+  const ownerId = requireTenantId(ownerIdValue);
+  if (!inputs.length) return [];
+  await ensureHostedUser(ownerId);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const saved = [];
+    for (const input of inputs) {
+      const [job] = await tx
+        .insert(hostedJobs)
+        .values({
+          ownerId,
+          source: input.source,
+          sourceJobId: input.sourceJobId,
+          url: input.url,
+          canonicalUrl: input.canonicalUrl,
+          company: input.company,
+          title: input.title,
+          location: input.location || "",
+          descriptionExcerpt: input.descriptionExcerpt || "",
+          postedAt: validDate(input.postedAt),
+          matchScore: input.matchScore ?? null,
+          matchReasons: input.matchReasons || [],
+          matchedSkills: input.matchedSkills || [],
+          remoteSignal: input.remoteSignal || "unknown",
+          sponsorshipSignal: input.sponsorshipSignal || "unknown",
+          compensationMinimum: input.compensationMinimum ?? null,
+          compensationMaximum: input.compensationMaximum ?? null,
+          sourceMetadata: input.sourceMetadata || {},
+        })
+        .onConflictDoUpdate({
+          target: [hostedJobs.ownerId, hostedJobs.canonicalUrl],
+          set: {
+            source: input.source,
+            sourceJobId: input.sourceJobId,
+            url: input.url,
+            company: input.company,
+            title: input.title,
+            location: input.location || "",
+            descriptionExcerpt: input.descriptionExcerpt || "",
+            postedAt: validDate(input.postedAt),
+            matchScore: input.matchScore ?? null,
+            matchReasons: input.matchReasons || [],
+            matchedSkills: input.matchedSkills || [],
+            remoteSignal: input.remoteSignal || "unknown",
+            sponsorshipSignal: input.sponsorshipSignal || "unknown",
+            compensationMinimum: input.compensationMinimum ?? null,
+            compensationMaximum: input.compensationMaximum ?? null,
+            sourceMetadata: input.sourceMetadata || {},
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+      saved.push(job);
+    }
+    return saved;
+  });
+}
+
+export async function claimHostedDiscoveryRun(ownerIdValue: string, cooldownMs = 5 * 60_000) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  const now = new Date();
+  const availableBefore = new Date(now.getTime() - cooldownMs);
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [claimed] = await tx
+      .update(searchProfiles)
+      .set({ lastDiscoveryAt: now, updatedAt: now })
+      .where(and(
+        eq(searchProfiles.ownerId, ownerId),
+        or(isNull(searchProfiles.lastDiscoveryAt), lt(searchProfiles.lastDiscoveryAt, availableBefore)),
+      ))
+      .returning({ lastDiscoveryAt: searchProfiles.lastDiscoveryAt });
+    return claimed ?? null;
+  });
+}
+
+export async function listHostedJobs(ownerIdValue: string, options: { status?: string; limit?: number } = {}) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  const limit = Math.max(1, Math.min(options.limit || 250, 500));
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const where = options.status
+      ? and(eq(hostedJobs.ownerId, ownerId), eq(hostedJobs.status, assertHostedJobStatus(options.status)))
+      : eq(hostedJobs.ownerId, ownerId);
+    return tx
+      .select()
+      .from(hostedJobs)
+      .where(where)
+      .orderBy(desc(hostedJobs.matchScore), desc(hostedJobs.postedAt), desc(hostedJobs.discoveredAt))
+      .limit(limit);
+  });
+}
+
+export async function updateHostedJobStatus(
+  ownerIdValue: string,
+  jobId: string,
+  nextStatusValue: string,
+  note?: string,
+) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const nextStatus = assertHostedJobStatus(nextStatusValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [current] = await tx
+      .select()
+      .from(hostedJobs)
+      .where(and(eq(hostedJobs.ownerId, ownerId), eq(hostedJobs.id, jobId)))
+      .limit(1);
+    if (!current) return null;
+    if (current.status === nextStatus) return current;
+
+    const [updated] = await tx
+      .update(hostedJobs)
+      .set({ status: nextStatus, statusUpdatedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(hostedJobs.ownerId, ownerId), eq(hostedJobs.id, jobId)))
+      .returning();
+    await tx.insert(hostedJobStatusEvents).values({
+      ownerId,
+      jobId,
+      fromStatus: current.status,
+      toStatus: nextStatus,
+      note: note?.trim().slice(0, 500) || null,
+    });
+    return updated;
   });
 }

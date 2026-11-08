@@ -71,9 +71,15 @@ test("hosted auth and API namespaces are explicit", () => {
   assert.equal(isHostedProtectedPath("/app/today"), true);
   assert.equal(isHostedProtectedPath("/onboarding"), true);
   assert.equal(isHostedProtectedPath("/api/hosted/workspace"), true);
+  assert.equal(isHostedProtectedPath("/app/discover"), true);
+  assert.equal(isHostedProtectedPath("/app/pipeline"), true);
+  assert.equal(isHostedProtectedPath("/api/hosted/discovery/run"), true);
+  assert.equal(isHostedProtectedPath("/api/hosted/jobs/job-id/status"), true);
   assert.equal(isHostedProtectedPath("/welcome"), false);
   assert.deepEqual(hostedRouteDecision("/sign-in"), { action: "allow" });
   assert.deepEqual(hostedRouteDecision("/api/hosted/workspace"), { action: "allow" });
+  assert.deepEqual(hostedRouteDecision("/app/discover"), { action: "allow" });
+  assert.deepEqual(hostedRouteDecision("/app/pipeline"), { action: "allow" });
 });
 
 test("dashboard and API routes remain closed during the landing preview", () => {

@@ -53,6 +53,7 @@ export const searchProfiles = pgTable("search_profiles", {
   approvedI140: boolean("approved_i140").default(false).notNull(),
   cadencePreference: text("cadence_preference").default("daily").notNull(),
   approvalRequired: boolean("approval_required").default(true).notNull(),
+  lastDiscoveryAt: timestamp("last_discovery_at", { withTimezone: true }),
   ...timestamps,
 });
 
@@ -119,6 +120,66 @@ export const documents = pgTable(
   (table) => [index("documents_owner_idx").on(table.ownerId)],
 );
 
+export const hostedJobs = pgTable(
+  "hosted_jobs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    source: text("source").notNull(),
+    sourceJobId: text("source_job_id"),
+    url: text("url").notNull(),
+    canonicalUrl: text("canonical_url").notNull(),
+    company: text("company").notNull(),
+    title: text("title").notNull(),
+    location: text("location").default("").notNull(),
+    descriptionExcerpt: text("description_excerpt").default("").notNull(),
+    postedAt: timestamp("posted_at", { withTimezone: true }),
+    discoveredAt: timestamp("discovered_at", { withTimezone: true }).defaultNow().notNull(),
+    matchScore: integer("match_score"),
+    matchReasons: text("match_reasons").array().default(sql`'{}'::text[]`).notNull(),
+    matchedSkills: text("matched_skills").array().default(sql`'{}'::text[]`).notNull(),
+    remoteSignal: text("remote_signal").default("unknown").notNull(),
+    sponsorshipSignal: text("sponsorship_signal").default("unknown").notNull(),
+    compensationMinimum: integer("compensation_minimum"),
+    compensationMaximum: integer("compensation_maximum"),
+    status: text("status").default("discovered").notNull(),
+    statusUpdatedAt: timestamp("status_updated_at", { withTimezone: true }).defaultNow().notNull(),
+    sourceMetadata: jsonb("source_metadata").$type<Record<string, unknown>>().default({}).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("hosted_jobs_owner_canonical_url_idx").on(table.ownerId, table.canonicalUrl),
+    uniqueIndex("hosted_jobs_id_owner_idx").on(table.id, table.ownerId),
+    index("hosted_jobs_owner_status_idx").on(table.ownerId, table.status),
+    index("hosted_jobs_owner_discovered_idx").on(table.ownerId, table.discoveredAt),
+  ],
+);
+
+export const hostedJobStatusEvents = pgTable(
+  "hosted_job_status_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id").notNull(),
+    fromStatus: text("from_status").notNull(),
+    toStatus: text("to_status").notNull(),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.jobId, table.ownerId],
+      foreignColumns: [hostedJobs.id, hostedJobs.ownerId],
+      name: "hosted_job_status_events_job_owner_fk",
+    }).onDelete("cascade"),
+    index("hosted_job_status_events_owner_job_idx").on(table.ownerId, table.jobId),
+  ],
+);
+
 export const webhookEvents = pgTable("webhook_events", {
   id: text("id").primaryKey(),
   eventType: text("event_type").notNull(),
@@ -142,3 +203,4 @@ export const accountDeletionRequests = pgTable(
 export type SearchProfile = typeof searchProfiles.$inferSelect;
 export type Resume = typeof resumes.$inferSelect;
 export type ResumeVersion = typeof resumeVersions.$inferSelect;
+export type HostedJob = typeof hostedJobs.$inferSelect;

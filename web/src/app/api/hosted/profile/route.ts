@@ -44,8 +44,9 @@ export async function PUT(request: Request) {
         { status: 400 },
       );
     }
-    const search = await saveHostedSearchProfile(ownerId, payload.data);
-    return NextResponse.json({ saved: true, search });
+    const markOnboardingComplete = new URL(request.url).searchParams.get("complete") !== "false";
+    const search = await saveHostedSearchProfile(ownerId, payload.data, { markOnboardingComplete });
+    return NextResponse.json({ saved: true, onboardingComplete: markOnboardingComplete, search });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to save the profile.";
     const status = message === "Authentication required." ? 401 : 500;

@@ -1,5 +1,10 @@
 .page { --ink:#20233d; --muted:#68708a; --line:rgba(63,72,113,.13); --violet:#6265d4; --violet-soft:#ececff; --mint:#4f9385; max-width:92rem; margin:0 auto; padding:2.6rem 3rem 4rem; }
 :global(.dark) .page { --ink:#f0fdfa; --muted:#9cc6c0; --line:rgba(156,198,192,.17); --violet:#a5a7ff; --violet-soft:rgba(102,105,216,.18); --mint:#5eead4; }
+.previewNotice { margin-bottom:1.5rem; padding:1rem 1.1rem; display:grid; grid-template-columns:auto 1fr; gap:.75rem; align-items:start; border:1px solid rgba(98,101,212,.2); border-radius:1rem; background:var(--violet-soft); }
+.previewNotice > svg { width:1.15rem; color:var(--violet); }
+.previewNotice div { display:grid; gap:.2rem; }
+.previewNotice strong { font-size:.74rem; }
+.previewNotice p { max-width:65rem; color:var(--muted); font-size:.66rem; line-height:1.55; }
 .headingRow { display:grid; grid-template-columns:1fr auto; gap:2rem; align-items:end; }
 .eyebrow,.sectionHeading span { color:#7377d2; font-size:.64rem; font-weight:850; letter-spacing:.13em; text-transform:uppercase; }
 .headingRow h1 { margin-top:.55rem; max-width:48rem; font-size:clamp(2.8rem,4.8vw,4.8rem); line-height:.95; font-weight:400; letter-spacing:-.045em; }

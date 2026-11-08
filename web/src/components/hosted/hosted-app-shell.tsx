@@ -42,7 +42,15 @@ const navItems = [
   { label: "Integrations", href: "/app/integrations", icon: Unplug, ready: true },
 ];
 
-export function HostedAppShell({ children, identity }: { children: React.ReactNode; identity: HostedIdentity }) {
+export function HostedAppShell({
+  children,
+  identity,
+  onboardingComplete,
+}: {
+  children: React.ReactNode;
+  identity: HostedIdentity;
+  onboardingComplete: boolean;
+}) {
   const pathname = usePathname();
 
   return (
@@ -79,7 +87,7 @@ export function HostedAppShell({ children, identity }: { children: React.ReactNo
 
         <div className={styles.sidebarFooter}>
           <ThemeToggle className={styles.sidebarTheme} showLabel />
-          <Link href="/onboarding"><Settings /> Finish setup</Link>
+          <Link href="/onboarding"><Settings /> {onboardingComplete ? "Edit preferences" : "Continue setup"}</Link>
           <div className={styles.accountCard}>
             {identity.mode === "clerk" ? <UserButton /> : <span>RL</span>}
             <div><strong>{identity.label}</strong><small>{identity.detail}</small></div>
@@ -98,7 +106,7 @@ export function HostedAppShell({ children, identity }: { children: React.ReactNo
           <div className={styles.topbarActions}>
             <span className={styles.safeBadge}>{identity.mode === "preview" ? "Sample workspace" : "Private workspace"}</span>
             <ThemeToggle className={styles.topbarTheme} />
-            <Link href="/onboarding">Finish setup</Link>
+            <Link href="/onboarding">{onboardingComplete ? "Edit preferences" : "Continue setup"}</Link>
           </div>
         </header>
 

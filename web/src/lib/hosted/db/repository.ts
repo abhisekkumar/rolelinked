@@ -67,7 +67,11 @@ export async function getHostedProfile(ownerIdValue: string) {
   });
 }
 
-export async function saveHostedSearchProfile(ownerIdValue: string, input: SearchProfileInput) {
+export async function saveHostedSearchProfile(
+  ownerIdValue: string,
+  input: SearchProfileInput,
+  options: { markOnboardingComplete?: boolean } = {},
+) {
   const ownerId = requireTenantId(ownerIdValue);
   await ensureHostedUser(ownerId);
   const db = getHostedDatabase();
@@ -81,10 +85,12 @@ export async function saveHostedSearchProfile(ownerIdValue: string, input: Searc
         set: { ...input, approvalRequired: true, updatedAt: new Date() },
       })
       .returning();
-    await tx
-      .update(users)
-      .set({ onboardingComplete: true, updatedAt: new Date() })
-      .where(eq(users.id, ownerId));
+    if (options.markOnboardingComplete !== false) {
+      await tx
+        .update(users)
+        .set({ onboardingComplete: true, updatedAt: new Date() })
+        .where(eq(users.id, ownerId));
+    }
     return profile;
   });
 }

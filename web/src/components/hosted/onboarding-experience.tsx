@@ -32,8 +32,14 @@ function splitList(value: string) {
   return value.split(",").map((item) => item.trim()).filter(Boolean);
 }
 
-export function OnboardingExperience({ persistent }: { persistent: boolean }) {
-  const [step, setStep] = useState(0);
+export function OnboardingExperience({
+  persistent,
+  initialStep = 0,
+}: {
+  persistent: boolean;
+  initialStep?: number;
+}) {
+  const [step, setStep] = useState(initialStep);
   const [selectedRoles, setSelectedRoles] = useState(() => new Set<string>());
   const [customRole, setCustomRole] = useState("");
   const [locations, setLocations] = useState("");
@@ -96,43 +102,51 @@ export function OnboardingExperience({ persistent }: { persistent: boolean }) {
     setSelectedRoles((current) => new Set(addTargetRoles(current, role)));
   };
 
-  const save = async () => {
+  const profilePayload = () => ({
+    targetRoles: [...selectedRoles],
+    prioritySkills: splitList(prioritySkills),
+    excludedRoles: [],
+    locations: splitList(locations),
+    remotePreference,
+    compensationCurrency: "USD",
+    compensationMinimum: compensationMinimum ? Number(compensationMinimum) : null,
+    compensationTarget: compensationTarget ? Number(compensationTarget) : null,
+    sponsorshipRequired,
+    approvedI140,
+    cadencePreference: cadence,
+  });
+
+  const persistProfile = async (complete: boolean) => {
     if (!persistent) {
-      setStep(3);
-      return;
+      return true;
     }
     setSaving(true);
     setStatus(null);
-    const response = await fetch("/api/hosted/profile", {
+    const response = await fetch(`/api/hosted/profile?complete=${complete ? "true" : "false"}`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        targetRoles: [...selectedRoles],
-        prioritySkills: splitList(prioritySkills),
-        excludedRoles: [],
-        locations: splitList(locations),
-        remotePreference,
-        compensationCurrency: "USD",
-        compensationMinimum: compensationMinimum ? Number(compensationMinimum) : null,
-        compensationTarget: compensationTarget ? Number(compensationTarget) : null,
-        sponsorshipRequired,
-        approvedI140,
-        cadencePreference: cadence,
-      }),
+      body: JSON.stringify(profilePayload()),
     });
     const body = await response.json().catch(() => ({}));
     setSaving(false);
     if (!response.ok) {
       setStatus(body.error || "Your profile could not be saved.");
-      return;
+      return false;
     }
-    setStatus("Search profile saved privately.");
-    setStep(3);
+    setStatus(complete ? "Setup completed and saved privately." : "Progress saved privately.");
+    return true;
   };
 
-  const continueSetup = () => {
-    if (step < 2) setStep((value) => value + 1);
-    else void save();
+  const continueSetup = async () => {
+    if (step === 0) {
+      if (await persistProfile(false)) setStep(1);
+      return;
+    }
+    if (step === 1) {
+      setStep(2);
+      return;
+    }
+    if (await persistProfile(true)) setStep(3);
   };
 
   const firstStepValid = selectedRoles.size > 0 && splitList(locations).length > 0;
@@ -188,7 +202,10 @@ export function OnboardingExperience({ persistent }: { persistent: boolean }) {
                 <label><Target /><span>Priority skills</span><input value={prioritySkills} onChange={(event) => setPrioritySkills(event.target.value)} placeholder="Campaign strategy, Figma, Python" /></label>
                 <label><span className={styles.dollar}>$</span><span>Minimum compensation</span><input type="number" min="0" value={compensationMinimum} onChange={(event) => setCompensationMinimum(event.target.value)} placeholder="Optional" /></label>
                 <label><span className={styles.dollar}>$</span><span>Target compensation</span><input type="number" min="0" value={compensationTarget} onChange={(event) => setCompensationTarget(event.target.value)} placeholder="Optional" /></label>
-                <label><MapPin /><span>Work arrangement</span><select value={remotePreference} onChange={(event) => setRemotePreference(event.target.value)}><option value="flexible">Flexible</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="onsite">On-site</option></select></label>
+                <fieldset className={styles.workArrangement}>
+                  <legend><MapPin /> Work arrangement</legend>
+                  <div>{[["flexible", "Flexible"], ["remote", "Remote"], ["hybrid", "Hybrid"], ["onsite", "On-site"]].map(([value, label]) => <button key={value} type="button" aria-pressed={remotePreference === value} className={remotePreference === value ? styles.selectedWorkOption : undefined} onClick={() => setRemotePreference(value)}>{label}</button>)}</div>
+                </fieldset>
               </div>
               <div className={styles.checkRow}><label><input type="checkbox" checked={sponsorshipRequired} onChange={(event) => setSponsorshipRequired(event.target.checked)} /> Employer sponsorship required</label><label><input type="checkbox" checked={approvedI140} onChange={(event) => setApprovedI140(event.target.checked)} /> Approved I-140</label></div>
             </>}
@@ -198,7 +215,7 @@ export function OnboardingExperience({ persistent }: { persistent: boolean }) {
               <h2>Give each role family the right source.</h2>
               <p className={styles.lede}>Store multiple truthful base resumes privately. RoleLinked can later emphasize supported evidence without changing employers, titles, dates, or facts.</p>
               <div className={styles.resumeList}>{resumeSuggestions.map(([name, description]) => <div key={name}><Database /><span><strong>{name}</strong><small>{description}</small></span></div>)}</div>
-              <Link className={styles.uploadPlaceholder} href="/app/resumes"><Database /> Open private resume library <small>Upload and manage multiple sources</small></Link>
+              <Link className={styles.uploadPlaceholder} href="/app/resumes?returnTo=onboarding"><Database /> Open private resume library <small>Your setup progress is saved; return here when finished</small></Link>
             </>}
 
             {step === 2 && <>

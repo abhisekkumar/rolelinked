@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
+  ArrowLeft,
   Download,
+  Eye,
   FileLock2,
   FileText,
   LoaderCircle,
@@ -32,7 +35,14 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function ResumeLibrary() {
+const PREVIEWABLE_RESUME_TYPES = new Set([
+  "application/pdf",
+  "text/plain",
+  "text/markdown",
+  "application/x-tex",
+]);
+
+export function ResumeLibrary({ fromOnboarding = false }: { fromOnboarding?: boolean }) {
   const [resumes, setResumes] = useState<ResumeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -86,6 +96,7 @@ export function ResumeLibrary() {
 
   return (
     <div className={styles.page}>
+      {fromOnboarding && <section className={styles.onboardingReturn}><div><strong>Resume setup</strong><span>Upload or review your sources, then return to finish your search preferences.</span></div><Link href="/onboarding?step=resumes"><ArrowLeft /> Return to setup</Link></section>}
       <header className={styles.heading}>
         <div>
           <p>Private resume library</p>
@@ -130,6 +141,7 @@ export function ResumeLibrary() {
                   <span className={styles.fileIcon}><FileText /></span>
                   <div><strong>{resume.name}</strong><p>{resume.roleType}</p><small>v{resume.version} · {resume.originalFilename} · {formatBytes(resume.byteSize)}</small></div>
                   <div className={styles.actions}>
+                    {PREVIEWABLE_RESUME_TYPES.has(resume.contentType) && <a href={`/api/hosted/resumes/${resume.id}/preview`} target="_blank" rel="noreferrer"><Eye /> Preview</a>}
                     <a href={`/api/hosted/resumes/${resume.id}/download`}><Download /> Download</a>
                     <button type="button" onClick={() => remove(resume)}><Trash2 /> Delete</button>
                   </div>

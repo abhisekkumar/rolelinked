@@ -7,6 +7,11 @@ export const metadata: Metadata = {
   description: "Manage private, role-specific resume sources and versions.",
 };
 
-export default function ResumesPage() {
-  return <ResumeLibrary />;
+export default async function ResumesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ returnTo?: string }>;
+}) {
+  const params = await searchParams;
+  return <ResumeLibrary fromOnboarding={params.returnTo === "onboarding"} />;
 }

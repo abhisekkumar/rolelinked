@@ -56,6 +56,9 @@ jobs:
       # Skip the postinstall (npx playwright install chromium); the tests
       # never launch a browser, so the ~170 MB download is pure CI overhead.
       - run: npm install --ignore-scripts
+      - name: Install web unit-test dependencies
+        run: npm ci --ignore-scripts
+        working-directory: web
       - run: node test-all.mjs --quick
       - name: Go dashboard tests
         run: go test ./...

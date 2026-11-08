@@ -5,6 +5,7 @@ import { ShieldCheck } from "lucide-react";
 import { CoMark } from "@/components/co-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { instrumentSerif } from "@/lib/fonts";
+import { isHostedDeployment } from "@/lib/deployment-mode.mjs";
 import { isHostedAuthConfigured } from "@/lib/hosted/config.mjs";
 
 import styles from "./auth-screen.module.css";
@@ -32,6 +33,7 @@ const authAppearance = {
 
 export function AuthScreen({ mode }: { mode: "sign-in" | "sign-up" }) {
   const configured = isHostedAuthConfigured();
+  const hosted = isHostedDeployment(process.env.ROLELINKED_DEPLOYMENT_MODE);
   const creating = mode === "sign-up";
 
   return (
@@ -74,9 +76,11 @@ export function AuthScreen({ mode }: { mode: "sign-in" | "sign-up" }) {
           ) : (
             <div className={styles.pending}>
               <small>Local integration preview</small>
-              <h2>{creating ? "Account creation is ready for Clerk keys." : "Sign-in is ready for Clerk keys."}</h2>
-              <p>The authentication code is installed, but no credential is stored in this repository. Add the Clerk development keys through <code>web/.env.local</code> to test real accounts locally.</p>
-              <Link href="/app/today">Continue with sample workspace</Link>
+              <h2>{creating ? "Account creation is waiting for Clerk configuration." : "Sign-in is waiting for Clerk configuration."}</h2>
+              <p>{hosted
+                ? "Authentication is temporarily unavailable. No private workspace data is exposed while the production identity service is unconfigured."
+                : <>The authentication code is installed, but no credential is stored in this repository. Add Clerk development keys through <code>web/.env.local</code> to test real accounts locally.</>}</p>
+              {!hosted && <Link href="/app/today">Continue with sample workspace</Link>}
             </div>
           )}
         </div>

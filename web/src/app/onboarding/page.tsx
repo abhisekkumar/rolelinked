@@ -9,9 +9,15 @@ export const metadata: Metadata = {
   description: "Define your target roles, resume library, and approval-first search automation.",
 };
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ step?: string }>;
+}) {
   const identity = await getHostedIdentity();
   if (!identity) redirect("/sign-in");
+  const params = await searchParams;
+  const initialStep = params.step === "resumes" ? 1 : 0;
 
-  return <OnboardingExperience />;
+  return <OnboardingExperience persistent={identity.mode === "clerk"} initialStep={initialStep} />;
 }

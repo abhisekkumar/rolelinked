@@ -39,13 +39,17 @@ export function TodayWorkspace() {
 
   return (
     <div className={styles.page}>
+      <section className={styles.previewNotice}>
+        <Sparkles />
+        <div><strong>Preview dashboard</strong><p>Your profile and private resumes are live. The roles, metrics, follow-ups, interviews, and charts below are sample data until discovery and tracking are connected in Phase 3.</p></div>
+      </section>
       <section className={styles.headingRow}>
         <div>
-          <p className={styles.eyebrow}>Thursday, October 30</p>
-          <h1 className={instrumentSerif.className}>Your search has three useful decisions today.</h1>
-          <p>RoleLinked keeps discovery, applications, and preparation in one queue—without taking the final action for you.</p>
+          <p className={styles.eyebrow}>Sample daily workspace</p>
+          <h1 className={instrumentSerif.className}>This is how your daily queue will work.</h1>
+          <p>Explore the workflow while we connect your real discovery, application, and interview data.</p>
         </div>
-        <div className={styles.scanStatus}><span /><div><strong>Daily discovery complete</strong><small>128 sources checked · 12 relevant roles</small></div><Radar /></div>
+        <div className={styles.scanStatus}><span /><div><strong>Sample discovery snapshot</strong><small>Example numbers—not an actual scan</small></div><Radar /></div>
       </section>
 
       <section className={styles.metricGrid} aria-label="Workspace overview">
@@ -72,7 +76,7 @@ export function TodayWorkspace() {
               );
             })}
           </div>
-          <p className={styles.demoHint}><CircleAlert /> Preview interactions update this page only. No application, status, or message is changed.</p>
+          <p className={styles.demoHint}><CircleAlert /> Sample interactions update this page only. No application, status, or message is changed.</p>
         </div>
 
         <aside className={styles.insightColumn}>

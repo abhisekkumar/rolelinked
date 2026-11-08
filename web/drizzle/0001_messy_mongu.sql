@@ -1,0 +1,2 @@
+CREATE INDEX "account_deletion_requests_owner_idx" ON "account_deletion_requests" USING btree ("owner_id");--> statement-breakpoint
+CREATE INDEX "documents_owner_idx" ON "documents" USING btree ("owner_id");

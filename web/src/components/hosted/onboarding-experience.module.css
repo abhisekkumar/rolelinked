@@ -51,6 +51,11 @@
 .addRole input,.profileFields input,.profileFields select { width:100%; min-height:2.75rem; padding:.72rem .82rem; border:1px solid var(--line); border-radius:.75rem; color:var(--ink); background:var(--panel-solid); font:inherit; font-size:.72rem; outline:none; }
 .addRole input:focus,.profileFields input:focus,.profileFields select:focus { border-color:rgba(98,101,212,.56); box-shadow:0 0 0 3px rgba(98,101,212,.11); }
 .addRole button { padding:.7rem 1rem; border:1px solid var(--violet); border-radius:.75rem; color:white; background:var(--violet); font-size:.7rem; font-weight:800; cursor:pointer; }
+.roleHint { margin-top:.8rem; color:var(--muted); font-size:.66rem; line-height:1.5; }
+.roleExamples { margin-top:.55rem; display:flex; flex-wrap:wrap; gap:.45rem; }
+.roleExamples button { padding:.5rem .65rem; border:1px solid var(--line); border-radius:999px; color:var(--muted); background:var(--panel-solid); font-size:.62rem; font-weight:700; cursor:pointer; }
+.roleExamples button:hover { color:var(--violet); border-color:color-mix(in srgb,var(--violet) 36%,var(--line)); }
+.roleExamples button:disabled { opacity:.42; cursor:default; }
 .profileFields { margin-top:.85rem; display:grid; grid-template-columns:1fr 1fr; gap:.65rem; }
 .profileFields label { padding:.85rem; display:grid; grid-template-columns:auto 1fr; gap:.42rem .5rem; align-items:center; border:1px solid var(--line); border-radius:1rem; color:var(--muted); background:var(--panel-solid); }
 .profileFields label > svg,.profileFields .dollar { width:1rem; color:var(--violet); }

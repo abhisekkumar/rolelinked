@@ -18,16 +18,15 @@ import {
 import { CoMark } from "@/components/co-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { instrumentSerif } from "@/lib/fonts";
+import {
+  addTargetRoles,
+  buildResumeGuidance,
+  ROLE_EXAMPLES,
+} from "@/lib/hosted/onboarding-profile.mjs";
 
 import styles from "./onboarding-experience.module.css";
 
 const steps = ["Your search", "Resumes", "Automation", "Ready"];
-const roleSuggestions = ["Senior Data Engineer", "Staff Data Engineer", "AI Data Engineer"];
-const resumeSuggestions = [
-  ["Senior Data Engineer", "Hands-on platform and pipeline roles"],
-  ["Staff Data Engineer", "Architecture, influence, and platform ownership"],
-  ["AI Data Engineer", "AI infrastructure and data-for-models roles"],
-];
 
 function splitList(value: string) {
   return value.split(",").map((item) => item.trim()).filter(Boolean);
@@ -48,9 +47,10 @@ export function OnboardingExperience({ persistent }: { persistent: boolean }) {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
-  const availableRoles = useMemo(
-    () => [...new Set([...roleSuggestions, ...selectedRoles])],
-    [selectedRoles],
+  const availableRoles = useMemo(() => [...selectedRoles], [selectedRoles]);
+  const resumeSuggestions = useMemo(
+    () => buildResumeGuidance(availableRoles),
+    [availableRoles],
   );
 
   useEffect(() => {
@@ -86,10 +86,14 @@ export function OnboardingExperience({ persistent }: { persistent: boolean }) {
   };
 
   const addCustomRole = () => {
-    const role = customRole.trim();
-    if (role.length < 2) return;
-    setSelectedRoles((current) => new Set([...current, role]));
+    const roles = addTargetRoles(selectedRoles, customRole);
+    if (roles.length === selectedRoles.size) return;
+    setSelectedRoles(new Set(roles));
     setCustomRole("");
+  };
+
+  const addExampleRole = (role: string) => {
+    setSelectedRoles((current) => new Set(addTargetRoles(current, role)));
   };
 
   const save = async () => {
@@ -171,17 +175,19 @@ export function OnboardingExperience({ persistent }: { persistent: boolean }) {
             {step === 0 && <>
               <p className={styles.eyebrow}>01 · Search profile</p>
               <h2>What should reach your review queue?</h2>
-              <p className={styles.lede}>Define the roles and constraints that should shape discovery before AI evaluates anything.</p>
+              <p className={styles.lede}>RoleLinked works across professions. Add the exact titles you want, then define the constraints that should shape discovery before AI evaluates anything.</p>
               <div className={styles.fieldGroup}>
-                <label>Target roles</label>
-                <div className={styles.roleGrid}>{availableRoles.map((role) => <button key={role} type="button" className={selectedRoles.has(role) ? styles.selectedChoice : undefined} onClick={() => toggleRole(role)}><Target /><span>{role}</span>{selectedRoles.has(role) && <Check />}</button>)}</div>
-                <div className={styles.addRole}><input value={customRole} onChange={(event) => setCustomRole(event.target.value)} placeholder="Add another role title" maxLength={100} /><button type="button" onClick={addCustomRole}>Add role</button></div>
+                <label>Your target roles</label>
+                {availableRoles.length > 0 && <div className={styles.roleGrid}>{availableRoles.map((role) => <button key={role} type="button" className={styles.selectedChoice} onClick={() => toggleRole(role)} aria-label={`Remove ${role}`}><Target /><span>{role}</span><Check /></button>)}</div>}
+                <div className={styles.addRole}><input value={customRole} onChange={(event) => setCustomRole(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addCustomRole(); } }} placeholder="Add any title, or separate several with commas" maxLength={500} /><button type="button" onClick={addCustomRole}>Add role</button></div>
+                <p className={styles.roleHint}>Any profession is supported. Try an example or enter your own:</p>
+                <div className={styles.roleExamples}>{ROLE_EXAMPLES.map((role) => <button key={role} type="button" onClick={() => addExampleRole(role)} disabled={selectedRoles.has(role)}>+ {role}</button>)}</div>
               </div>
               <div className={styles.profileFields}>
-                <label><MapPin /><span>Locations</span><input value={locations} onChange={(event) => setLocations(event.target.value)} placeholder="Remote, New York, New Jersey" /></label>
-                <label><Target /><span>Priority skills</span><input value={prioritySkills} onChange={(event) => setPrioritySkills(event.target.value)} placeholder="Spark, Python, SQL" /></label>
-                <label><span className={styles.dollar}>$</span><span>Minimum compensation</span><input type="number" min="0" value={compensationMinimum} onChange={(event) => setCompensationMinimum(event.target.value)} placeholder="180000" /></label>
-                <label><span className={styles.dollar}>$</span><span>Target compensation</span><input type="number" min="0" value={compensationTarget} onChange={(event) => setCompensationTarget(event.target.value)} placeholder="220000" /></label>
+                <label><MapPin /><span>Locations</span><input value={locations} onChange={(event) => setLocations(event.target.value)} placeholder="Remote, Chicago, London" /></label>
+                <label><Target /><span>Priority skills</span><input value={prioritySkills} onChange={(event) => setPrioritySkills(event.target.value)} placeholder="Campaign strategy, Figma, Python" /></label>
+                <label><span className={styles.dollar}>$</span><span>Minimum compensation</span><input type="number" min="0" value={compensationMinimum} onChange={(event) => setCompensationMinimum(event.target.value)} placeholder="Optional" /></label>
+                <label><span className={styles.dollar}>$</span><span>Target compensation</span><input type="number" min="0" value={compensationTarget} onChange={(event) => setCompensationTarget(event.target.value)} placeholder="Optional" /></label>
                 <label><MapPin /><span>Work arrangement</span><select value={remotePreference} onChange={(event) => setRemotePreference(event.target.value)}><option value="flexible">Flexible</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="onsite">On-site</option></select></label>
               </div>
               <div className={styles.checkRow}><label><input type="checkbox" checked={sponsorshipRequired} onChange={(event) => setSponsorshipRequired(event.target.checked)} /> Employer sponsorship required</label><label><input type="checkbox" checked={approvedI140} onChange={(event) => setApprovedI140(event.target.checked)} /> Approved I-140</label></div>

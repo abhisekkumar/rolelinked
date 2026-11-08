@@ -102,11 +102,11 @@ export function ResumeLibrary() {
           <h2>Add a role-specific source.</h2>
           <label>
             Resume name
-            <input name="name" maxLength={100} placeholder="Staff Data Engineer" required />
+            <input name="name" maxLength={100} placeholder="Product marketing resume" required />
           </label>
           <label>
             Best used for
-            <input name="roleType" maxLength={100} placeholder="Staff and platform architecture roles" required />
+            <input name="roleType" maxLength={100} placeholder="Product marketing and growth roles" required />
           </label>
           <label className={styles.fileField}>
             Resume file

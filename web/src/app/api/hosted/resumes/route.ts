@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { isHostedDatabaseConfigured } from "@/lib/hosted/config.mjs";
+import { describePrivateUploadError } from "@/lib/hosted/blob-errors.mjs";
 import {
   createHostedResume,
   listHostedResumes,
@@ -74,7 +75,10 @@ export async function POST(request: Request) {
       }
     }
     const message = error instanceof Error ? error.message : "Unable to upload the resume.";
-    const status = message === "Authentication required." ? 401 : /unique/i.test(message) ? 409 : 500;
-    return NextResponse.json({ error: message }, { status });
+    if (message === "Authentication required.") {
+      return NextResponse.json({ error: message }, { status: 401 });
+    }
+    const described = describePrivateUploadError(error);
+    return NextResponse.json({ error: described.message }, { status: described.status });
   }
 }

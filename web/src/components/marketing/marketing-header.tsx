@@ -27,9 +27,9 @@ export function MarketingHeader() {
         </nav>
 
         <div className={styles.headerActions}>
-          <Link href="/app/today" className={styles.previewLink}>Workspace preview</Link>
+          <Link href="/sign-in?redirect_url=%2Fapp%2Ftoday" className={styles.signInLink}>Sign in</Link>
           <ThemeToggle className={styles.themeToggle} />
-          <Link href="/onboarding" className={styles.headerCta}>
+          <Link href="/sign-up?redirect_url=%2Fonboarding" className={styles.headerCta}>
             Start free <ArrowRight aria-hidden="true" />
           </Link>
         </div>

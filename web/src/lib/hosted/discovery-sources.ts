@@ -1,20 +1,18 @@
 import "server-only";
 
-type RawJob = {
-  source: string;
-  sourceJobId?: string;
-  url: string;
-  company: string;
-  title: string;
-  location: string;
-  descriptionExcerpt?: string;
-  postedAt?: string | Date | null;
-  remoteSignal?: "remote" | "hybrid" | "onsite" | "unknown";
-  sponsorshipSignal?: "positive" | "negative" | "unknown";
-  compensationMinimum?: number | null;
-  compensationMaximum?: number | null;
-  sourceMetadata?: Record<string, unknown>;
-};
+// The bridge loads the repository's hardened public-ATS providers at runtime.
+// Keeping this boundary in plain server JavaScript prevents the web compiler
+// from treating the entire CLI provider tree as TypeScript application code.
+import { fetchCareerOpsAtsBoard } from "./ats-provider-bridge.mjs";
+import { HOSTED_ATS_CATALOG, type HostedAtsBoard } from "./ats-catalog";
+import {
+  normalizeCareerOpsJob,
+  plainText,
+  positiveNumber,
+  text,
+  type CareerOpsJob,
+  type RawJob,
+} from "./source-normalize";
 
 type SourceResult = { source: string; jobs: RawJob[]; error?: string };
 
@@ -24,24 +22,35 @@ const SOURCES = {
   himalayas: "https://himalayas.app/jobs/api?limit=100",
 } as const;
 
-function text(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
+async function fetchAtsBoard(board: HostedAtsBoard): Promise<SourceResult> {
+  const source = `${board.name} · ${board.provider}`;
+  try {
+    const jobs = await fetchCareerOpsAtsBoard(board) as CareerOpsJob[];
+    return {
+      source,
+      jobs: jobs.flatMap((job) => {
+        const normalized = normalizeCareerOpsJob(job, board);
+        return normalized ? [normalized] : [];
+      }),
+    };
+  } catch (error) {
+    return { source, jobs: [], error: error instanceof Error ? error.message : "Source unavailable" };
+  }
 }
 
-function plainText(value: unknown, limit = 900) {
-  return text(value)
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, limit);
-}
-
-function positiveNumber(value: unknown) {
-  if (value === null || value === undefined || value === "") return null;
-  const number = Number(value);
-  return Number.isFinite(number) && number > 0 ? number : null;
+async function fetchHostedAtsSources(): Promise<SourceResult[]> {
+  const fastBoards = HOSTED_ATS_CATALOG.filter((board) => board.provider !== "ashby");
+  const slowerAshbyBoards = HOSTED_ATS_CATALOG.filter((board) => board.provider === "ashby");
+  const fastPromise = Promise.all(fastBoards.map(fetchAtsBoard));
+  // Ashby's public feed has a latency floor and rate-limits bursts to one host.
+  // Walk those few boards sequentially while the other ATS requests run in parallel.
+  const ashbyPromise = (async () => {
+    const results: SourceResult[] = [];
+    for (const board of slowerAshbyBoards) results.push(await fetchAtsBoard(board));
+    return results;
+  })();
+  const [fast, ashby] = await Promise.all([fastPromise, ashbyPromise]);
+  return [...fast, ...ashby];
 }
 
 function validHttpsUrl(value: unknown, trustedHosts: string[]) {
@@ -156,13 +165,15 @@ export async function fetchHostedDiscoverySources(): Promise<SourceResult[]> {
     ["RemoteOK", fetchRemoteOk],
     ["Himalayas", fetchHimalayas],
   ] as const;
-  return Promise.all(runners.map(async ([source, run]) => {
+  const feedPromise = Promise.all(runners.map(async ([source, run]) => {
     try {
       return { source, jobs: await run() };
     } catch (error) {
       return { source, jobs: [], error: error instanceof Error ? error.message : "Source unavailable" };
     }
   }));
+  const [feeds, atsBoards] = await Promise.all([feedPromise, fetchHostedAtsSources()]);
+  return [...feeds, ...atsBoards];
 }
 
 export type { RawJob, SourceResult };

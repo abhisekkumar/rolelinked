@@ -4,7 +4,7 @@
   "private": true,
   "description": "Local-first RoleLinked web dashboard.",
   "scripts": {
-    "dev": "node server.mjs dev",
+    "dev": "node server.mjs dev --webpack",
     "build": "next build --webpack",
     "start": "node server.mjs start",
     "db:generate": "drizzle-kit generate",

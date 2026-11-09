@@ -58,6 +58,14 @@
 
 .signInLink:hover { color: var(--fg); }
 
+.accountButton {
+  min-width: 2.35rem;
+  min-height: 2.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .nav a {
   text-decoration: none;
   transition: color 180ms ease;
@@ -138,6 +146,7 @@
   .brand { gap: 0.55rem; }
   .brand span { font-size: 1.15rem; }
   .signInLink { font-size: 0.72rem; }
+  .accountButton { min-width: 2rem; min-height: 2rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

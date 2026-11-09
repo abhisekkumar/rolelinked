@@ -35,12 +35,12 @@ CREATE TABLE "hosted_jobs" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX "hosted_jobs_owner_canonical_url_idx" ON "hosted_jobs" USING btree ("owner_id","canonical_url");--> statement-breakpoint
+CREATE UNIQUE INDEX "hosted_jobs_id_owner_idx" ON "hosted_jobs" USING btree ("id","owner_id");--> statement-breakpoint
 ALTER TABLE "hosted_job_status_events" ADD CONSTRAINT "hosted_job_status_events_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "hosted_job_status_events" ADD CONSTRAINT "hosted_job_status_events_job_owner_fk" FOREIGN KEY ("job_id","owner_id") REFERENCES "public"."hosted_jobs"("id","owner_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "hosted_jobs" ADD CONSTRAINT "hosted_jobs_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "hosted_job_status_events_owner_job_idx" ON "hosted_job_status_events" USING btree ("owner_id","job_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "hosted_jobs_owner_canonical_url_idx" ON "hosted_jobs" USING btree ("owner_id","canonical_url");--> statement-breakpoint
-CREATE UNIQUE INDEX "hosted_jobs_id_owner_idx" ON "hosted_jobs" USING btree ("id","owner_id");--> statement-breakpoint
 CREATE INDEX "hosted_jobs_owner_status_idx" ON "hosted_jobs" USING btree ("owner_id","status");--> statement-breakpoint
 CREATE INDEX "hosted_jobs_owner_discovered_idx" ON "hosted_jobs" USING btree ("owner_id","discovered_at");
 --> statement-breakpoint

@@ -19,3 +19,11 @@ test("status history cannot reference a job owned by another tenant", () => {
   assert.match(migration, /FOREIGN KEY \("job_id","owner_id"\)/);
   assert.match(migration, /REFERENCES "public"\."hosted_jobs"\("id","owner_id"\)/);
 });
+
+test("the composite job identity is unique before the tenant-safe foreign key is added", () => {
+  const uniqueIndex = migration.indexOf('CREATE UNIQUE INDEX "hosted_jobs_id_owner_idx"');
+  const foreignKey = migration.indexOf('ADD CONSTRAINT "hosted_job_status_events_job_owner_fk"');
+  assert.ok(uniqueIndex >= 0);
+  assert.ok(foreignKey >= 0);
+  assert.ok(uniqueIndex < foreignKey, "Postgres requires the referenced unique index before the foreign key");
+});

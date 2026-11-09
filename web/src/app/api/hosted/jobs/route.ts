@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { canonicalizeJobUrl } from "@/lib/core/hosted-job-match.mjs";
+import { canonicalizeJobUrl, screenHostedDiscoveryJobs } from "@/lib/core/hosted-job-match.mjs";
 import { isHostedDatabaseConfigured } from "@/lib/hosted/config.mjs";
-import { listHostedJobs, upsertHostedJobs } from "@/lib/hosted/db/repository";
+import { getHostedProfile, listHostedJobs, upsertHostedJobs } from "@/lib/hosted/db/repository";
 import { requireHostedUserId } from "@/lib/hosted/identity";
 import { toHostedJobView } from "@/lib/hosted/job-view";
 
@@ -22,8 +22,15 @@ export async function GET(request: Request) {
   try {
     const ownerId = await requireHostedUserId();
     if (!isHostedDatabaseConfigured()) return unavailable();
-    const status = new URL(request.url).searchParams.get("status") || undefined;
+    const searchParams = new URL(request.url).searchParams;
+    const status = searchParams.get("status") || undefined;
+    const view = searchParams.get("view");
     const jobs = await listHostedJobs(ownerId, { status });
+    if (view === "discover") {
+      const profile = await getHostedProfile(ownerId);
+      const screened = profile.search ? screenHostedDiscoveryJobs(jobs, profile.search) : jobs;
+      return NextResponse.json({ jobs: screened.map(toHostedJobView) });
+    }
     return NextResponse.json({ jobs: jobs.map(toHostedJobView) });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to load jobs.";

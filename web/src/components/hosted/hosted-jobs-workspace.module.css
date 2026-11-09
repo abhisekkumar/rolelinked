@@ -4,3 +4,5 @@
 @media(max-width:760px){.page{padding:1.7rem 1rem 3rem}.heading{align-items:start;flex-direction:column}.heading h1{font-size:3.2rem}.headingActions{width:100%}.headingActions button{flex:1}.safetyStrip div{display:grid}.manualForm{grid-template-columns:1fr}.manualForm>div{grid-column:auto}.closeButton{position:absolute;right:.7rem;top:.7rem}.controls{align-items:stretch;flex-direction:column}.jobCard footer{align-items:stretch;flex-direction:column}.quickActions{width:100%}.quickActions button,.statusSelect,.statusSelect select{flex:1;width:100%}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.spin{animation:none}}
+.cardTop .verificationBadge,.reasonRow .verificationReason{color:#8a5c18;background:#fff3d6}
+:global(.dark) .cardTop .verificationBadge,:global(.dark) .reasonRow .verificationReason{color:#ffd994;background:rgba(245,158,11,.13)}

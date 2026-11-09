@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { rankHostedJobs } from "@/lib/core/hosted-job-match.mjs";
 import { isHostedDatabaseConfigured } from "@/lib/hosted/config.mjs";
-import { claimHostedDiscoveryRun, getHostedProfile, upsertHostedJobs } from "@/lib/hosted/db/repository";
-import { fetchHostedDiscoverySources } from "@/lib/hosted/discovery-sources";
+import { claimHostedDiscoveryRun, getHostedProfile } from "@/lib/hosted/db/repository";
+import { executeHostedDiscovery } from "@/lib/hosted/discovery-service";
 import { requireHostedUserId } from "@/lib/hosted/identity";
 import { toHostedJobView } from "@/lib/hosted/job-view";
 
@@ -30,22 +29,20 @@ export async function POST() {
       );
     }
 
-    const sourceResults = await fetchHostedDiscoverySources();
-    const fetched = sourceResults.flatMap((result) => result.jobs);
-    const ranked = rankHostedJobs(fetched, profile.search, { minimumScore: 35, limit: 100 });
-    const saved = await upsertHostedJobs(ownerId, ranked);
-    const failures = sourceResults
-      .filter((result) => result.error)
-      .map((result) => ({ source: result.source, error: result.error }));
+    const { sourceResults, fetched, classified, saved, failures } = await executeHostedDiscovery(ownerId, profile.search);
 
     return NextResponse.json({
       run: {
         sourcesChecked: sourceResults.length,
         providersSucceeded: sourceResults.length - failures.length,
         fetched: fetched.length,
-        qualified: ranked.length,
+        qualified: classified.qualified.length,
+        verification: classified.verification.length,
+        rejected: classified.rejected.length,
+        rejectionCounts: classified.rejectionCounts,
         saved: saved.length,
         failures,
+        execution: "inline",
         completedAt: new Date().toISOString(),
       },
       jobs: saved.map(toHostedJobView),

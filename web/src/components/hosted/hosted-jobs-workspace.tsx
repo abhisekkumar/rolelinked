@@ -112,7 +112,7 @@ export function HostedJobsWorkspace({
   }, [activeStatus, jobs, mode, query]);
 
   const reloadJobs = async () => {
-    const payload = await readResponse(await fetch("/api/hosted/jobs", { cache: "no-store" }));
+    const payload = await readResponse(await fetch(`/api/hosted/jobs?view=${mode}`, { cache: "no-store" }));
     setJobs(payload.jobs);
   };
 
@@ -127,7 +127,7 @@ export function HostedJobsWorkspace({
         : "";
       setMessage({
         tone: "good",
-        text: `Checked ${payload.run.sourcesChecked} sources and saved ${payload.run.qualified} relevant role${payload.run.qualified === 1 ? "" : "s"}.${failureNote}`,
+        text: `Checked ${payload.run.sourcesChecked} sources: ${payload.run.qualified} qualified match${payload.run.qualified === 1 ? "" : "es"}, ${payload.run.verification} verification lead${payload.run.verification === 1 ? "" : "s"}, and ${payload.run.rejected} off-target listing${payload.run.rejected === 1 ? "" : "s"} filtered out.${failureNote}`,
       });
     } catch (error) {
       setMessage({ tone: "bad", text: error instanceof Error ? error.message : "Discovery could not run." });
@@ -238,7 +238,11 @@ export function HostedJobsWorkspace({
               <div className={styles.cardTop}>
                 <span className={styles.companyMark}>{job.company.slice(0, 1).toUpperCase()}</span>
                 <div><span>{job.company}</span><h2>{job.title}</h2></div>
-                {job.matchScore !== null && <b>{job.matchScore}% match</b>}
+                {job.matchScore !== null && (
+                  <b className={job.matchTier === "verification" ? styles.verificationBadge : undefined}>
+                    {job.matchTier === "verification" ? "Verify" : job.matchTier === "qualified" ? "Qualified" : "Lead"} · {job.matchScore}%
+                  </b>
+                )}
               </div>
               <div className={styles.metaRow}>
                 <span><MapPin /> {job.location || "Location not listed"}</span>
@@ -248,6 +252,7 @@ export function HostedJobsWorkspace({
               {job.descriptionExcerpt && <p className={styles.excerpt}>{job.descriptionExcerpt}</p>}
               <div className={styles.reasonRow}>
                 {job.matchReasons.slice(0, 3).map((reason) => <span key={reason}><Sparkles /> {reason}</span>)}
+                {job.verificationReasons.slice(0, 1).map((reason) => <span className={styles.verificationReason} key={reason}><ShieldCheck /> {reason}</span>)}
               </div>
               <div className={styles.factRow}>
                 <span><CircleDollarSign /> {formatCompensation(job)}</span>

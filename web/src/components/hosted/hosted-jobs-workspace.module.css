@@ -52,3 +52,32 @@
 :global(.dark) .statusSelect{background:linear-gradient(180deg,#102522,#0c1d1b)}
 :global(.dark) .statusSelect select{color:#b9baff;background:transparent}
 @media(max-width:760px){.filterButton,.activeFilterButton{justify-content:center}.filterLabel{justify-content:center}.filterPanel{grid-template-columns:1fr}.matchLegend>div{position:fixed;left:1rem;bottom:1rem}.statusSelect{flex:1;width:100%}}
+
+/* RoleLinked keeps its richer cards, while this compact mode brings over the
+   fast-scanning rhythm people value in the local Career Ops pipeline. */
+.viewSwitch{height:2.75rem;padding:.22rem;display:flex;align-items:center;gap:.18rem;border:1px solid var(--line);border-radius:.8rem;background:var(--panel);box-shadow:0 5px 14px rgba(54,61,103,.04)}
+.viewSwitch button{height:100%;padding:0 .62rem;display:flex;align-items:center;gap:.34rem;border:0;border-radius:.58rem;color:var(--muted);background:transparent;font-size:.58rem;font-weight:800;cursor:pointer;transition:color .18s ease,background .18s ease,box-shadow .18s ease}
+.viewSwitch button svg{width:.82rem}
+.viewSwitch .activeView{color:#5659bc;background:#eeefff;box-shadow:0 2px 8px rgba(71,74,151,.1)}
+.companyLogo{background:#fff;box-shadow:0 5px 14px rgba(50,56,96,.08)}
+.compactList{margin-top:.8rem;overflow:hidden;border:1px solid var(--line);border-radius:1.15rem;background:var(--panel);box-shadow:0 16px 34px rgba(54,61,103,.045)}
+.compactRow{padding:.78rem 1rem;display:grid;grid-template-columns:minmax(18rem,1.55fr) minmax(12rem,1fr) minmax(14rem,1fr) auto;gap:1rem;align-items:center;border-bottom:1px solid var(--line);background:transparent;transition:background .18s ease}
+.compactRow:last-child{border-bottom:0}
+.compactRow:hover{background:rgba(98,101,212,.035)}
+.compactRow .cardTop{grid-template-columns:auto minmax(0,1fr) auto;gap:.65rem;align-items:center}
+.compactRow .cardTop>div{gap:.1rem}
+.compactRow .cardTop h2{overflow:hidden;font-size:.72rem;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}
+.compactRow .cardTop b{white-space:nowrap}
+.compactRow .metaRow,.compactRow .factRow{margin:0;padding:0;display:grid;gap:.28rem}
+.compactRow .metaRow span,.compactRow .factRow span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compactRow footer{margin:0;padding:0;justify-content:flex-end;border:0}
+.compactRow footer>a{width:2.2rem;height:2.2rem;justify-content:center;border:1px solid var(--line);border-radius:.65rem;font-size:0}
+.compactRow footer>a svg{width:.85rem}
+
+:global(.dark) .viewSwitch,:global(.dark) .compactList{background:var(--panel)}
+:global(.dark) .viewSwitch .activeView{color:#c5c6ff;background:rgba(102,105,216,.2)}
+:global(.dark) .compactRow:hover{background:rgba(102,105,216,.07)}
+
+@media(max-width:1180px){.compactRow{grid-template-columns:minmax(17rem,1.5fr) minmax(11rem,1fr) auto}.compactRow .factRow{display:none}}
+@media(max-width:900px){.compactRow{grid-template-columns:minmax(0,1fr) auto}.compactRow .metaRow{display:none}.compactRow footer{grid-column:2}}
+@media(max-width:760px){.viewSwitch{width:100%;order:4}.viewSwitch button{flex:1;justify-content:center}.compactRow{padding:1rem;grid-template-columns:1fr}.compactRow .cardTop{grid-template-columns:auto minmax(0,1fr)}.compactRow .cardTop b{grid-column:2;justify-self:start}.compactRow .metaRow,.compactRow .factRow{display:flex;margin-top:.65rem}.compactRow footer{grid-column:auto;margin-top:.2rem;justify-content:space-between}.compactRow footer>a{width:auto;padding:0 .65rem;font-size:.58rem}}

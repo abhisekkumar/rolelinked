@@ -12,6 +12,8 @@ import {
   Filter,
   Globe2,
   Info,
+  LayoutGrid,
+  List,
   LoaderCircle,
   MapPin,
   Plus,
@@ -24,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 
+import { CompanyLogo } from "@/components/company-logo";
 import { instrumentSerif } from "@/lib/fonts";
 import type { HostedJobView } from "@/lib/hosted/job-view";
 
@@ -139,6 +142,7 @@ export function HostedJobsWorkspace({
   const [seniorityFilter, setSeniorityFilter] = useState("all");
   const [matchFilter, setMatchFilter] = useState("all");
   const [locationFilter, setLocationFilter] = useState("");
+  const [viewMode, setViewMode] = useState<"cards" | "compact">(mode === "pipeline" ? "compact" : "cards");
   const [message, setMessage] = useState<{ tone: "good" | "bad"; text: string } | null>(null);
 
   const counts = useMemo(() => {
@@ -297,6 +301,10 @@ export function HostedJobsWorkspace({
           <SlidersHorizontal /> Refine {activeFilterCount > 0 && <span>{activeFilterCount}</span>} <ChevronDown className={showFilters ? styles.chevronOpen : undefined} />
         </button>
         <div className={styles.filterLabel}><Filter /> {visibleJobs.length} of {jobs.length}</div>
+        <div className={styles.viewSwitch} aria-label="Choose job display">
+          <button type="button" className={viewMode === "compact" ? styles.activeView : undefined} onClick={() => setViewMode("compact")} aria-pressed={viewMode === "compact"} title="Compact list"><List /><span>List</span></button>
+          <button type="button" className={viewMode === "cards" ? styles.activeView : undefined} onClick={() => setViewMode("cards")} aria-pressed={viewMode === "cards"} title="Detailed cards"><LayoutGrid /><span>Cards</span></button>
+        </div>
       </section>
 
       {showFilters && (
@@ -344,11 +352,11 @@ export function HostedJobsWorkspace({
       </section>
 
       {visibleJobs.length ? (
-        <section className={styles.jobGrid}>
+        <section className={viewMode === "compact" ? styles.compactList : styles.jobGrid} data-view={viewMode}>
           {visibleJobs.map((job) => (
-            <article key={job.id} className={styles.jobCard}>
+            <article key={job.id} className={viewMode === "compact" ? styles.compactRow : styles.jobCard}>
               <div className={styles.cardTop}>
-                <span className={styles.companyMark}>{job.company.slice(0, 1).toUpperCase()}</span>
+                <CompanyLogo name={job.company} size={viewMode === "compact" ? 30 : 42} className={styles.companyLogo} />
                 <div><span>{job.company}</span><h2>{job.title}</h2></div>
                 {job.matchScore !== null && (
                   <b className={job.matchTier === "verification" ? styles.verificationBadge : undefined}>
@@ -361,11 +369,11 @@ export function HostedJobsWorkspace({
                 <span><Clock3 /> {formatDate(job.postedAt)}</span>
                 <span><Globe2 /> {job.source}</span>
               </div>
-              {job.descriptionExcerpt && <p className={styles.excerpt}>{job.descriptionExcerpt}</p>}
-              <div className={styles.reasonRow}>
+              {viewMode === "cards" && job.descriptionExcerpt && <p className={styles.excerpt}>{job.descriptionExcerpt}</p>}
+              {viewMode === "cards" && <div className={styles.reasonRow}>
                 {job.matchReasons.slice(0, 3).map((reason) => <span key={reason}><Sparkles /> {reason}</span>)}
                 {job.verificationReasons.slice(0, 1).map((reason) => <span className={styles.verificationReason} key={reason}><ShieldCheck /> {reason}</span>)}
-              </div>
+              </div>}
               <div className={styles.factRow}>
                 <span><CircleDollarSign /> {formatCompensation(job)}</span>
                 <span><ShieldCheck /> Sponsorship {job.sponsorshipSignal === "unknown" ? "not stated" : job.sponsorshipSignal}</span>

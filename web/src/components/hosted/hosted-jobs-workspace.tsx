@@ -379,7 +379,7 @@ export function HostedJobsWorkspace({
                 <span><ShieldCheck /> Sponsorship {job.sponsorshipSignal === "unknown" ? "not stated" : job.sponsorshipSignal}</span>
               </div>
               <footer>
-                <a href={job.url} target="_blank" rel="noreferrer">View role <ExternalLink /></a>
+                <a href={job.url} target="_blank" rel="noreferrer" aria-label={`Open ${job.title} at ${job.company} in a new tab`}>Open listing <ExternalLink /></a>
                 <div className={styles.quickActions}>
                   {mode === "discover" && job.status === "discovered" && <button type="button" onClick={() => changeStatus(job.id, "shortlisted")} disabled={updatingId === job.id}>Shortlist</button>}
                   {mode === "discover" && !["applied", "responded", "assessment", "interview", "offer", "hired"].includes(job.status) && <button type="button" onClick={() => changeStatus(job.id, "applied")} disabled={updatingId === job.id}><CheckCircle2 /> Mark applied</button>}

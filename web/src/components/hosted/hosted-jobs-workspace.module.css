@@ -81,3 +81,12 @@
 @media(max-width:1180px){.compactRow{grid-template-columns:minmax(17rem,1.5fr) minmax(11rem,1fr) auto}.compactRow .factRow{display:none}}
 @media(max-width:900px){.compactRow{grid-template-columns:minmax(0,1fr) auto}.compactRow .metaRow{display:none}.compactRow footer{grid-column:2}}
 @media(max-width:760px){.viewSwitch{width:100%;order:4}.viewSwitch button{flex:1;justify-content:center}.compactRow{padding:1rem;grid-template-columns:1fr}.compactRow .cardTop{grid-template-columns:auto minmax(0,1fr)}.compactRow .cardTop b{grid-column:2;justify-self:start}.compactRow .metaRow,.compactRow .factRow{display:flex;margin-top:.65rem}.compactRow footer{grid-column:auto;margin-top:.2rem;justify-content:space-between}.compactRow footer>a{width:auto;padding:0 .65rem;font-size:.58rem}}
+
+/* Compact rows should still be comfortably readable. */
+.compactRow{padding:.95rem 1.1rem}
+.compactRow .cardTop>div span{font-size:.66rem}
+.compactRow .cardTop h2{font-size:.82rem;line-height:1.38}
+.compactRow .cardTop b{font-size:.6rem}
+.compactRow .metaRow,.compactRow .factRow{font-size:.63rem;line-height:1.45}
+.compactRow .statusSelect select{font-size:.63rem}
+.compactRow footer>a{width:auto;min-width:6.7rem;padding:0 .68rem;gap:.38rem;font-size:.6rem;white-space:nowrap}

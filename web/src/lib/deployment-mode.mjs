@@ -43,6 +43,13 @@ export function isHostedApiPath(pathname) {
   return pathname === "/api/hosted" || pathname.startsWith("/api/hosted/");
 }
 
+// Read-only presentation assets used by both the local dashboard and hosted
+// workspace. Keep this list narrow: unlike /api/hosted/*, these routes expose
+// no tenant data and perform no user action.
+export function isHostedPublicAssetPath(pathname) {
+  return pathname === "/api/logo";
+}
+
 export function isHostedProtectedPath(pathname) {
   return isHostedAppPath(pathname) || isHostedApiPath(pathname);
 }
@@ -61,6 +68,7 @@ export function hostedRouteDecision(pathname) {
     || isHostedAppPath(pathname)
     || isHostedAuthPath(pathname)
     || isHostedApiPath(pathname)
+    || isHostedPublicAssetPath(pathname)
     || pathname === "/icon.svg"
   ) {
     return { action: "allow" };

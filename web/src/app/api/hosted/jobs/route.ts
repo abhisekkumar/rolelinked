@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     const status = searchParams.get("status") || undefined;
     const view = searchParams.get("view");
     const jobs = await listHostedJobs(ownerId, { status });
-    if (view === "discover") {
+    if (view === "discover" || view === "pipeline") {
       const profile = await getHostedProfile(ownerId);
       const screened = profile.search ? screenHostedDiscoveryJobs(jobs, profile.search) : jobs;
       return NextResponse.json({ jobs: screened.map(toHostedJobView) });

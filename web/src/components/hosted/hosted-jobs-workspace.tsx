@@ -5,17 +5,21 @@ import {
   ArrowUpRight,
   BriefcaseBusiness,
   CheckCircle2,
+  ChevronDown,
   CircleDollarSign,
   Clock3,
   ExternalLink,
   Filter,
   Globe2,
+  Info,
   LoaderCircle,
   MapPin,
   Plus,
   Radar,
+  RotateCcw,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   X,
 } from "lucide-react";
@@ -52,6 +56,42 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: "Rejected",
   discarded: "Discarded",
 };
+
+const DATE_FILTERS = [
+  { value: "all", label: "Any time" },
+  { value: "1", label: "24h" },
+  { value: "3", label: "3d" },
+  { value: "7", label: "7d" },
+  { value: "14", label: "14d" },
+  { value: "30", label: "30d" },
+] as const;
+
+const SENIORITY_FILTERS = [
+  { value: "all", label: "Any level" },
+  { value: "staff", label: "Staff+" },
+  { value: "senior", label: "Senior" },
+  { value: "other", label: "Other" },
+] as const;
+
+const MATCH_FILTERS = [
+  { value: "all", label: "All matches" },
+  { value: "qualified", label: "Strong match" },
+  { value: "verification", label: "Verify details" },
+  { value: "unreviewed", label: "Unreviewed" },
+] as const;
+
+function matchLabel(job: JobRecord) {
+  if (job.matchTier === "qualified") return "Strong match";
+  if (job.matchTier === "verification") return "Verify details";
+  return "Unreviewed";
+}
+
+function seniorityBucket(title: string) {
+  const normalized = title.toLowerCase();
+  if (/\b(principal|director|head|lead|staff)\b/.test(normalized)) return "staff";
+  if (/\b(senior|sr\.?)(\b|\s)/.test(normalized)) return "senior";
+  return "other";
+}
 
 function formatDate(value: string | null) {
   if (!value) return "Posting date unavailable";
@@ -93,6 +133,12 @@ export function HostedJobsWorkspace({
   const [running, setRunning] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [showManual, setShowManual] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [postedWithin, setPostedWithin] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [seniorityFilter, setSeniorityFilter] = useState("all");
+  const [matchFilter, setMatchFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("");
   const [message, setMessage] = useState<{ tone: "good" | "bad"; text: string } | null>(null);
 
   const counts = useMemo(() => {
@@ -101,15 +147,43 @@ export function HostedJobsWorkspace({
     return next;
   }, [jobs]);
 
+  const sources = useMemo(() => [...new Set(jobs.map((job) => job.source).filter(Boolean))].sort(), [jobs]);
+
+  const activeFilterCount = [
+    postedWithin !== "all",
+    sourceFilter !== "all",
+    seniorityFilter !== "all",
+    matchFilter !== "all",
+    Boolean(locationFilter.trim()),
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setPostedWithin("all");
+    setSourceFilter("all");
+    setSeniorityFilter("all");
+    setMatchFilter("all");
+    setLocationFilter("");
+  };
+
   const visibleJobs = useMemo(() => {
     const normalized = query.trim().toLowerCase();
+    const normalizedLocation = locationFilter.trim().toLowerCase();
+    const cutoff = postedWithin === "all" ? null : Date.now() - Number(postedWithin) * 86_400_000;
     return jobs.filter((job) => {
       const statusMatch = activeStatus === "all" || job.status === activeStatus;
       const searchMatch = !normalized || `${job.company} ${job.title} ${job.location} ${job.matchedSkills.join(" ")}`.toLowerCase().includes(normalized);
-      if (mode === "discover") return statusMatch && searchMatch && !["rejected", "discarded", "hired"].includes(job.status);
-      return statusMatch && searchMatch;
+      const dateValue = job.postedAt ? new Date(job.postedAt).getTime() : Number.NaN;
+      const dateMatch = cutoff === null || (Number.isFinite(dateValue) && dateValue >= cutoff);
+      const sourceMatch = sourceFilter === "all" || job.source === sourceFilter;
+      const seniorityMatch = seniorityFilter === "all" || seniorityBucket(job.title) === seniorityFilter;
+      const matchTier = ["qualified", "verification"].includes(job.matchTier) ? job.matchTier : "unreviewed";
+      const qualityMatch = matchFilter === "all" || matchTier === matchFilter;
+      const locationMatch = !normalizedLocation || job.location.toLowerCase().includes(normalizedLocation);
+      const baseMatch = statusMatch && searchMatch && dateMatch && sourceMatch && seniorityMatch && qualityMatch && locationMatch;
+      if (mode === "discover") return baseMatch && !["rejected", "discarded", "hired"].includes(job.status);
+      return baseMatch;
     });
-  }, [activeStatus, jobs, mode, query]);
+  }, [activeStatus, jobs, locationFilter, matchFilter, mode, postedWithin, query, seniorityFilter, sourceFilter]);
 
   const reloadJobs = async () => {
     const payload = await readResponse(await fetch(`/api/hosted/jobs?view=${mode}`, { cache: "no-store" }));
@@ -127,7 +201,7 @@ export function HostedJobsWorkspace({
         : "";
       setMessage({
         tone: "good",
-        text: `Checked ${payload.run.sourcesChecked} sources: ${payload.run.qualified} qualified match${payload.run.qualified === 1 ? "" : "es"}, ${payload.run.verification} verification lead${payload.run.verification === 1 ? "" : "s"}, and ${payload.run.rejected} off-target listing${payload.run.rejected === 1 ? "" : "s"} filtered out.${failureNote}`,
+        text: `Checked ${payload.run.sourcesChecked} sources: ${payload.run.qualified} strong match${payload.run.qualified === 1 ? "" : "es"}, ${payload.run.verification} role${payload.run.verification === 1 ? "" : "s"} needing detail verification, and ${payload.run.rejected} off-target listing${payload.run.rejected === 1 ? "" : "s"} filtered out.${failureNote}`,
       });
     } catch (error) {
       setMessage({ tone: "bad", text: error instanceof Error ? error.message : "Discovery could not run." });
@@ -219,8 +293,46 @@ export function HostedJobsWorkspace({
 
       <section className={styles.controls}>
         <label className={styles.searchBox}><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search company, title, location, or skill" /></label>
-        <div className={styles.filterLabel}><Filter /> {visibleJobs.length} shown</div>
+        <button type="button" className={showFilters ? styles.activeFilterButton : styles.filterButton} onClick={() => setShowFilters((value) => !value)} aria-expanded={showFilters}>
+          <SlidersHorizontal /> Refine {activeFilterCount > 0 && <span>{activeFilterCount}</span>} <ChevronDown className={showFilters ? styles.chevronOpen : undefined} />
+        </button>
+        <div className={styles.filterLabel}><Filter /> {visibleJobs.length} of {jobs.length}</div>
       </section>
+
+      {showFilters && (
+        <section className={styles.filterPanel} aria-label="Refine pipeline results">
+          <div className={styles.filterGroup}>
+            <span>Posted</span>
+            <div>{DATE_FILTERS.map((filter) => <button type="button" key={filter.value} className={postedWithin === filter.value ? styles.selectedFilter : undefined} onClick={() => setPostedWithin(filter.value)}>{filter.label}</button>)}</div>
+          </div>
+          <div className={styles.filterGroup}>
+            <span>Source</span>
+            <div>
+              <button type="button" className={sourceFilter === "all" ? styles.selectedFilter : undefined} onClick={() => setSourceFilter("all")}>All sources</button>
+              {sources.map((source) => <button type="button" key={source} className={sourceFilter === source ? styles.selectedFilter : undefined} onClick={() => setSourceFilter(source)}>{source}</button>)}
+            </div>
+          </div>
+          <div className={styles.filterGroup}>
+            <span>Seniority</span>
+            <div>{SENIORITY_FILTERS.map((filter) => <button type="button" key={filter.value} className={seniorityFilter === filter.value ? styles.selectedFilter : undefined} onClick={() => setSeniorityFilter(filter.value)}>{filter.label}</button>)}</div>
+          </div>
+          <div className={styles.filterGroup}>
+            <span>Match quality</span>
+            <div>{MATCH_FILTERS.map((filter) => <button type="button" key={filter.value} className={matchFilter === filter.value ? styles.selectedFilter : undefined} onClick={() => setMatchFilter(filter.value)}>{filter.label}</button>)}</div>
+          </div>
+          <label className={styles.locationFilter}><span>Location</span><div><MapPin /><input value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} placeholder="Remote, New York…" /></div></label>
+          {activeFilterCount > 0 && <button type="button" className={styles.clearFilters} onClick={clearFilters}><RotateCcw /> Clear</button>}
+        </section>
+      )}
+
+      <details className={styles.matchLegend}>
+        <summary><Info /> What do the match labels mean?</summary>
+        <div>
+          <p><strong>Strong match</strong><span>The known role, location, compensation, and sponsorship facts fit your saved preferences.</span></p>
+          <p><strong>Verify details</strong><span>The role looks relevant, but at least one required fact—often compensation or sponsorship—is not stated.</span></p>
+          <p><strong>Unreviewed</strong><span>A role you added manually or an older saved result that has not received the current match check.</span></p>
+        </div>
+      </details>
 
       <section className={styles.statusTabs} aria-label="Pipeline status filters">
         <button type="button" className={activeStatus === "all" ? styles.activeTab : undefined} onClick={() => setActiveStatus("all")}>All <span>{counts.all}</span></button>
@@ -240,7 +352,7 @@ export function HostedJobsWorkspace({
                 <div><span>{job.company}</span><h2>{job.title}</h2></div>
                 {job.matchScore !== null && (
                   <b className={job.matchTier === "verification" ? styles.verificationBadge : undefined}>
-                    {job.matchTier === "verification" ? "Verify" : job.matchTier === "qualified" ? "Qualified" : "Lead"} · {job.matchScore}%
+                    {matchLabel(job)} · {job.matchScore}%
                   </b>
                 )}
               </div>
@@ -266,9 +378,11 @@ export function HostedJobsWorkspace({
                   {mode === "pipeline" && (
                     <label className={styles.statusSelect}>
                       <span className="sr-only">Status for {job.title}</span>
+                      <i aria-hidden="true" data-status={job.status} />
                       <select value={job.status} onChange={(event) => changeStatus(job.id, event.target.value)} disabled={updatingId === job.id}>
                         {STATUSES.map((status) => <option key={status} value={status}>{STATUS_LABELS[status]}</option>)}
                       </select>
+                      {updatingId === job.id ? <LoaderCircle className={styles.selectSpinner} /> : <ChevronDown className={styles.selectChevron} />}
                     </label>
                   )}
                 </div>

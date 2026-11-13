@@ -34,6 +34,20 @@ function publicRequestUrl(request: NextRequest) {
   return `${protocol}://${host}${request.nextUrl.pathname}${request.nextUrl.search}`;
 }
 
+function signatureFailureCategory(error: unknown) {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  if (message.includes("invalid subject")) return "subject-mismatch";
+  if (message.includes("body hash does not match")) return "body-mismatch";
+  if (message.includes("no signing keys") || message.includes("not configured")) return "missing-keys";
+  if (message.includes("expired") || message.includes("not active") || message.includes("timestamp")) {
+    return "token-time-window";
+  }
+  if (message.includes("signature") || message.includes("jwt") || message.includes("jws")) {
+    return "signing-key-mismatch";
+  }
+  return "unknown";
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const signature = request.headers.get("upstash-signature");
@@ -51,7 +65,15 @@ export async function POST(request: NextRequest) {
       upstashRegion: upstashRegion ?? undefined,
     });
     if (!verified) return NextResponse.json({ error: "Invalid queue signature." }, { status: 401 });
-  } catch {
+  } catch (error) {
+    // Never log the signature, payload, owner ID, signing keys, or raw SDK
+    // error. This category is enough to diagnose deployment configuration
+    // without exposing tenant data or credentials.
+    console.error("QStash delivery verification failed.", {
+      category: signatureFailureCategory(error),
+      upstashRegion: request.headers.get("upstash-region") || "missing",
+      publicHost: request.headers.get("x-forwarded-host") || request.headers.get("host") || "missing",
+    });
     return NextResponse.json({ error: "Invalid queue signature." }, { status: 401 });
   }
 

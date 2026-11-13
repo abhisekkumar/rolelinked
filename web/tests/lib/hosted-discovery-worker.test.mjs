@@ -20,6 +20,15 @@ test("discovery worker verifies the QStash signature against the public URL and 
   assert.match(worker, /upstash-signature/);
 });
 
+test("discovery worker logs only a safe verification category", () => {
+  assert.match(worker, /signatureFailureCategory/);
+  assert.match(worker, /QStash delivery verification failed/);
+  assert.match(worker, /upstashRegion:/);
+  assert.match(worker, /publicHost:/);
+  assert.doesNotMatch(worker, /console\.error\([^\n]*signature,/);
+  assert.doesNotMatch(worker, /console\.error\([^\n]*body,/);
+});
+
 test("queue payload contains only the tenant and opaque run identifiers", () => {
   assert.match(queue, /HostedDiscoveryMessage = \{ ownerId: string; runId: string \}/);
   assert.doesNotMatch(queue, /resume|description|profile/i);

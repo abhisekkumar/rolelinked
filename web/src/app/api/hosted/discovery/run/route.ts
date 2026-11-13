@@ -56,20 +56,23 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
-    const claimed = await claimHostedDiscoveryRun(ownerId);
-    if (!claimed) {
-      return NextResponse.json(
-        { error: "Discovery just ran for this account. Try again in a few minutes." },
-        { status: 429, headers: { "Retry-After": "300" } },
-      );
-    }
-
     const schedulerConfigured = isHostedSchedulerConfigured();
     const deployment = getHostedServiceReadiness().deployment;
     if (!schedulerConfigured && deployment !== "local") {
       return NextResponse.json(
         { error: "Background discovery is not configured for this deployment." },
         { status: 503 },
+      );
+    }
+
+    // Check service readiness before claiming the per-account cooldown. A
+    // configuration failure must not block a later attempt after the service
+    // has been repaired.
+    const claimed = await claimHostedDiscoveryRun(ownerId);
+    if (!claimed) {
+      return NextResponse.json(
+        { error: "Discovery just ran for this account. Try again in a few minutes." },
+        { status: 429, headers: { "Retry-After": "300" } },
       );
     }
 

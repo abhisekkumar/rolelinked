@@ -30,7 +30,13 @@ export async function POST(request: NextRequest) {
   if (!signature) return NextResponse.json({ error: "Missing queue signature." }, { status: 401 });
 
   try {
-    const verified = await receiverFromEnvironment().verify({ signature, body, url: request.url });
+    const upstashRegion = request.headers.get("upstash-region");
+    const verified = await receiverFromEnvironment().verify({
+      signature,
+      body,
+      url: request.url,
+      upstashRegion: upstashRegion ?? undefined,
+    });
     if (!verified) return NextResponse.json({ error: "Invalid queue signature." }, { status: 401 });
   } catch {
     return NextResponse.json({ error: "Invalid queue signature." }, { status: 401 });

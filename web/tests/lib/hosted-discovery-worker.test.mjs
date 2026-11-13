@@ -9,9 +9,11 @@ const worker = readFileSync(path.join(here, "../../src/app/api/hosted/discovery/
 const queue = readFileSync(path.join(here, "../../src/lib/hosted/qstash-discovery.ts"), "utf8");
 const runRoute = readFileSync(path.join(here, "../../src/app/api/hosted/discovery/run/route.ts"), "utf8");
 
-test("discovery worker verifies the QStash signature against the request URL", () => {
+test("discovery worker verifies the QStash signature against the request URL and delivery region", () => {
   assert.match(worker, /Receiver/);
-  assert.match(worker, /verify\(\{ signature, body, url: request\.url \}\)/);
+  assert.match(worker, /url: request\.url/);
+  assert.match(worker, /upstash-region/);
+  assert.match(worker, /upstashRegion: upstashRegion \?\? undefined/);
   assert.match(worker, /upstash-signature/);
 });
 

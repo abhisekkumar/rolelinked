@@ -61,7 +61,7 @@
 .viewSwitch .activeView{color:#5659bc;background:#eeefff;box-shadow:0 2px 8px rgba(71,74,151,.1)}
 .companyLogo{background:#fff;box-shadow:0 5px 14px rgba(50,56,96,.08)}
 .compactList{margin-top:.8rem;overflow:hidden;border:1px solid var(--line);border-radius:1.15rem;background:var(--panel);box-shadow:0 16px 34px rgba(54,61,103,.045)}
-.compactRow{padding:.78rem 1rem;display:grid;grid-template-columns:minmax(18rem,1.55fr) minmax(12rem,1fr) minmax(14rem,1fr) auto;gap:1rem;align-items:center;border-bottom:1px solid var(--line);background:transparent;transition:background .18s ease}
+.compactRow{padding:.78rem 1rem;display:grid;grid-template-columns:minmax(18rem,1.55fr) minmax(12rem,1fr) minmax(14rem,1fr) minmax(16.5rem,auto);gap:1rem;align-items:center;border-bottom:1px solid var(--line);background:transparent;transition:background .18s ease}
 .compactRow:last-child{border-bottom:0}
 .compactRow:hover{background:rgba(98,101,212,.035)}
 .compactRow .cardTop{grid-template-columns:auto minmax(0,1fr) auto;gap:.65rem;align-items:center}
@@ -70,15 +70,18 @@
 .compactRow .cardTop b{white-space:nowrap}
 .compactRow .metaRow,.compactRow .factRow{margin:0;padding:0;display:grid;gap:.28rem}
 .compactRow .metaRow span,.compactRow .factRow span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.compactRow footer{margin:0;padding:0;justify-content:flex-end;border:0}
-.compactRow footer>a{width:2.2rem;height:2.2rem;justify-content:center;border:1px solid var(--line);border-radius:.65rem;font-size:0}
+.compactRow footer{margin:0;padding:0;display:flex;align-items:center;justify-content:flex-end;gap:.5rem;border:0}
+.compactRow footer>a{width:auto;height:2.45rem;padding:0 .72rem;display:inline-flex;align-items:center;justify-content:center;gap:.38rem;border:1px solid rgba(98,101,212,.22);border-radius:.72rem;color:#5659bc;background:#fafaff;font-weight:800;line-height:1;text-decoration:none;box-shadow:0 4px 12px rgba(73,76,143,.05);transition:border-color .18s ease,background .18s ease,transform .18s ease}
+.compactRow footer>a:hover{border-color:rgba(98,101,212,.48);background:#f1f1ff;transform:translateY(-1px)}
 .compactRow footer>a svg{width:.85rem}
 
 :global(.dark) .viewSwitch,:global(.dark) .compactList{background:var(--panel)}
 :global(.dark) .viewSwitch .activeView{color:#c5c6ff;background:rgba(102,105,216,.2)}
 :global(.dark) .compactRow:hover{background:rgba(102,105,216,.07)}
+:global(.dark) .compactRow footer>a{color:#c5c6ff;border-color:rgba(185,186,255,.2);background:#102522}
+:global(.dark) .compactRow footer>a:hover{border-color:rgba(185,186,255,.45);background:#142c29}
 
-@media(max-width:1180px){.compactRow{grid-template-columns:minmax(17rem,1.5fr) minmax(11rem,1fr) auto}.compactRow .factRow{display:none}}
+@media(max-width:1180px){.compactRow{grid-template-columns:minmax(17rem,1.5fr) minmax(11rem,1fr) minmax(16.5rem,auto)}.compactRow .factRow{display:none}}
 @media(max-width:900px){.compactRow{grid-template-columns:minmax(0,1fr) auto}.compactRow .metaRow{display:none}.compactRow footer{grid-column:2}}
 @media(max-width:760px){.viewSwitch{width:100%;order:4}.viewSwitch button{flex:1;justify-content:center}.compactRow{padding:1rem;grid-template-columns:1fr}.compactRow .cardTop{grid-template-columns:auto minmax(0,1fr)}.compactRow .cardTop b{grid-column:2;justify-self:start}.compactRow .metaRow,.compactRow .factRow{display:flex;margin-top:.65rem}.compactRow footer{grid-column:auto;margin-top:.2rem;justify-content:space-between}.compactRow footer>a{width:auto;padding:0 .65rem;font-size:.58rem}}
 

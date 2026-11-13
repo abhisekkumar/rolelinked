@@ -18,7 +18,7 @@ export async function executeHostedDiscovery(ownerId: string, profile: SearchPro
   const saved = await upsertHostedJobs(ownerId, classified.accepted);
   const failures = sourceResults
     .filter((result) => result.error)
-    .map((result) => ({ source: result.source, error: result.error }));
+    .map((result) => ({ source: result.source, error: result.error || "Source unavailable" }));
 
   return { sourceResults, fetched, classified, saved, failures };
 }

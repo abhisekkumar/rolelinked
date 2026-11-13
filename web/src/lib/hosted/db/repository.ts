@@ -6,6 +6,8 @@ import { requireTenantId } from "@/lib/hosted/tenant-scope.mjs";
 import { getHostedDatabase } from "./client";
 import {
   candidateProfiles,
+  hostedDiscoveryRuns,
+  hostedDiscoverySourceChecks,
   hostedJobs,
   hostedJobStatusEvents,
   resumeVersions,
@@ -13,6 +15,7 @@ import {
   searchProfiles,
   users,
 } from "./schema";
+import type { HostedDiscoveryRun, HostedDiscoverySourceCheck } from "./schema";
 import { assertHostedJobStatus } from "@/lib/core/hosted-job-match.mjs";
 
 export type SearchProfileInput = {
@@ -292,6 +295,223 @@ export async function claimHostedDiscoveryRun(ownerIdValue: string, cooldownMs =
       ))
       .returning({ lastDiscoveryAt: searchProfiles.lastDiscoveryAt });
     return claimed ?? null;
+  });
+}
+
+export type HostedDiscoveryRunResult = {
+  sourcesChecked: number;
+  providersSucceeded: number;
+  fetchedCount: number;
+  qualifiedCount: number;
+  verificationCount: number;
+  rejectedCount: number;
+  savedCount: number;
+  failures: Array<{ source: string; error: string }>;
+  sourceResults: Array<{ source: string; jobs: unknown[]; error?: string }>;
+};
+
+export async function createHostedDiscoveryRun(
+  ownerIdValue: string,
+  input: { trigger?: string; execution?: string } = {},
+) {
+  const ownerId = requireTenantId(ownerIdValue);
+  await ensureHostedUser(ownerId);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [run] = await tx
+      .insert(hostedDiscoveryRuns)
+      .values({
+        ownerId,
+        trigger: input.trigger || "manual",
+        execution: input.execution || "qstash",
+      })
+      .returning();
+    return run;
+  });
+}
+
+export async function setHostedDiscoveryRunMessageId(
+  ownerIdValue: string,
+  runId: string,
+  messageId: string,
+) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [run] = await tx
+      .update(hostedDiscoveryRuns)
+      .set({ messageId, updatedAt: new Date() })
+      .where(and(eq(hostedDiscoveryRuns.ownerId, ownerId), eq(hostedDiscoveryRuns.id, runId)))
+      .returning();
+    return run ?? null;
+  });
+}
+
+export async function startHostedDiscoveryRun(ownerIdValue: string, runId: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [existing] = await tx
+      .select()
+      .from(hostedDiscoveryRuns)
+      .where(and(eq(hostedDiscoveryRuns.ownerId, ownerId), eq(hostedDiscoveryRuns.id, runId)))
+      .limit(1);
+    if (!existing) return { state: "missing" as const, run: null };
+    if (["succeeded", "partial"].includes(existing.status)) {
+      return { state: "complete" as const, run: existing };
+    }
+    if (existing.status === "running") {
+      return { state: "running" as const, run: existing };
+    }
+    const [run] = await tx
+      .update(hostedDiscoveryRuns)
+      .set({
+        status: "running",
+        attempt: sql`${hostedDiscoveryRuns.attempt} + 1`,
+        errorMessage: null,
+        startedAt: new Date(),
+        completedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(hostedDiscoveryRuns.ownerId, ownerId), eq(hostedDiscoveryRuns.id, runId)))
+      .returning();
+    return { state: "started" as const, run };
+  });
+}
+
+export async function completeHostedDiscoveryRun(
+  ownerIdValue: string,
+  runId: string,
+  result: HostedDiscoveryRunResult,
+) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const now = new Date();
+    for (const source of result.sourceResults) {
+      await tx
+        .insert(hostedDiscoverySourceChecks)
+        .values({
+          ownerId,
+          runId,
+          source: source.source,
+          status: source.error ? "failed" : "healthy",
+          fetchedCount: source.jobs.length,
+          errorMessage: source.error?.slice(0, 500) || null,
+          checkedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: [hostedDiscoverySourceChecks.runId, hostedDiscoverySourceChecks.source],
+          set: {
+            status: source.error ? "failed" : "healthy",
+            fetchedCount: source.jobs.length,
+            errorMessage: source.error?.slice(0, 500) || null,
+            checkedAt: now,
+          },
+        });
+    }
+    const [run] = await tx
+      .update(hostedDiscoveryRuns)
+      .set({
+        status: result.failures.length ? "partial" : "succeeded",
+        sourcesChecked: result.sourcesChecked,
+        providersSucceeded: result.providersSucceeded,
+        fetchedCount: result.fetchedCount,
+        qualifiedCount: result.qualifiedCount,
+        verificationCount: result.verificationCount,
+        rejectedCount: result.rejectedCount,
+        savedCount: result.savedCount,
+        failureCount: result.failures.length,
+        errorMessage: null,
+        completedAt: now,
+        updatedAt: now,
+      })
+      .where(and(eq(hostedDiscoveryRuns.ownerId, ownerId), eq(hostedDiscoveryRuns.id, runId)))
+      .returning();
+    return run ?? null;
+  });
+}
+
+export async function failHostedDiscoveryRun(ownerIdValue: string, runId: string, error: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [run] = await tx
+      .update(hostedDiscoveryRuns)
+      .set({
+        status: "failed",
+        errorMessage: error.slice(0, 500),
+        completedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(hostedDiscoveryRuns.ownerId, ownerId), eq(hostedDiscoveryRuns.id, runId)))
+      .returning();
+    return run ?? null;
+  });
+}
+
+export type HostedDiscoveryRunWithSources = {
+  run: HostedDiscoveryRun;
+  sources: HostedDiscoverySourceCheck[];
+};
+
+export async function getHostedDiscoveryRun(
+  ownerIdValue: string,
+  runId: string,
+): Promise<HostedDiscoveryRunWithSources | null> {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [run] = await tx
+      .select()
+      .from(hostedDiscoveryRuns)
+      .where(and(eq(hostedDiscoveryRuns.ownerId, ownerId), eq(hostedDiscoveryRuns.id, runId)))
+      .limit(1);
+    if (!run) return null;
+    const sources = await tx
+      .select()
+      .from(hostedDiscoverySourceChecks)
+      .where(and(
+        eq(hostedDiscoverySourceChecks.ownerId, ownerId),
+        eq(hostedDiscoverySourceChecks.runId, runId),
+      ))
+      .orderBy(hostedDiscoverySourceChecks.source);
+    return { run, sources };
+  });
+}
+
+export async function listHostedDiscoveryRuns(ownerIdValue: string, limitValue = 5) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  const limit = Math.max(1, Math.min(limitValue, 20));
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const runs = await tx
+      .select()
+      .from(hostedDiscoveryRuns)
+      .where(eq(hostedDiscoveryRuns.ownerId, ownerId))
+      .orderBy(desc(hostedDiscoveryRuns.createdAt))
+      .limit(limit);
+    if (!runs.length) return [];
+    const output: HostedDiscoveryRunWithSources[] = [];
+    for (const run of runs) {
+      const sources = await tx
+        .select()
+        .from(hostedDiscoverySourceChecks)
+        .where(and(
+          eq(hostedDiscoverySourceChecks.ownerId, ownerId),
+          eq(hostedDiscoverySourceChecks.runId, run.id),
+        ))
+        .orderBy(hostedDiscoverySourceChecks.source);
+      output.push({ run, sources });
+    }
+    return output;
   });
 }
 

@@ -29,6 +29,7 @@ import {
 import { CompanyLogo } from "@/components/company-logo";
 import { instrumentSerif } from "@/lib/fonts";
 import type { HostedJobView } from "@/lib/hosted/job-view";
+import type { HostedDiscoveryRunView } from "@/lib/hosted/discovery-run-view";
 
 import styles from "./hosted-jobs-workspace.module.css";
 
@@ -125,9 +126,11 @@ async function readResponse(response: Response) {
 
 export function HostedJobsWorkspace({
   initialJobs,
+  initialRuns = [],
   mode,
 }: {
   initialJobs: JobRecord[];
+  initialRuns?: HostedDiscoveryRunView[];
   mode: "discover" | "pipeline";
 }) {
   const [jobs, setJobs] = useState(initialJobs);
@@ -144,6 +147,7 @@ export function HostedJobsWorkspace({
   const [locationFilter, setLocationFilter] = useState("");
   const [viewMode, setViewMode] = useState<"cards" | "compact">(mode === "pipeline" ? "compact" : "cards");
   const [message, setMessage] = useState<{ tone: "good" | "bad"; text: string } | null>(null);
+  const [recentRuns, setRecentRuns] = useState(initialRuns);
 
   const counts = useMemo(() => {
     const next: Record<string, number> = { all: jobs.length };
@@ -199,13 +203,29 @@ export function HostedJobsWorkspace({
     setMessage(null);
     try {
       const payload = await readResponse(await fetch("/api/hosted/discovery/run", { method: "POST" }));
+      if (!payload.run?.id) throw new Error("Discovery was queued, but its progress could not be tracked.");
+      let run = payload.run as HostedDiscoveryRunView;
+      setRecentRuns((current) => [run, ...current.filter((item) => item.id !== run.id)].slice(0, 5));
+      let pollCount = 0;
+      while (["queued", "running"].includes(run.status) && pollCount < 180) {
+        pollCount += 1;
+        setMessage({ tone: "good", text: run.status === "queued" ? "Discovery is queued securely." : "Discovery is checking your approved sources…" });
+        await new Promise((resolve) => setTimeout(resolve, 2_000));
+        const progress = await readResponse(await fetch(`/api/hosted/discovery/run?runId=${encodeURIComponent(run.id)}`, { cache: "no-store" }));
+        run = progress.run;
+        setRecentRuns((current) => [run, ...current.filter((item) => item.id !== run.id)].slice(0, 5));
+      }
+      if (["queued", "running"].includes(run.status)) {
+        throw new Error("Discovery is still running in the background. Its result will remain in Recent discovery.");
+      }
+      if (run.status === "failed") throw new Error(run.error || "Discovery could not finish.");
       await reloadJobs();
-      const failureNote = payload.run.failures.length
-        ? ` ${payload.run.failures.length} source${payload.run.failures.length === 1 ? "" : "s"} could not be reached.`
+      const failureNote = run.failureCount
+        ? ` ${run.failureCount} source${run.failureCount === 1 ? "" : "s"} could not be reached.`
         : "";
       setMessage({
         tone: "good",
-        text: `Checked ${payload.run.sourcesChecked} sources: ${payload.run.qualified} strong match${payload.run.qualified === 1 ? "" : "es"}, ${payload.run.verification} role${payload.run.verification === 1 ? "" : "s"} needing detail verification, and ${payload.run.rejected} off-target listing${payload.run.rejected === 1 ? "" : "s"} filtered out.${failureNote}`,
+        text: `Checked ${run.sourcesChecked} sources: ${run.qualified} strong match${run.qualified === 1 ? "" : "es"}, ${run.verification} role${run.verification === 1 ? "" : "s"} needing detail verification, and ${run.rejected} off-target listing${run.rejected === 1 ? "" : "s"} filtered out.${failureNote}`,
       });
     } catch (error) {
       setMessage({ tone: "bad", text: error instanceof Error ? error.message : "Discovery could not run." });
@@ -294,6 +314,29 @@ export function HostedJobsWorkspace({
       )}
 
       {message && <div className={message.tone === "good" ? styles.goodMessage : styles.badMessage}>{message.text}</div>}
+
+      {mode === "discover" && recentRuns.length > 0 && (
+        <details className={styles.runHealth}>
+          <summary>
+            <span><Radar /> Recent discovery</span>
+            <strong data-status={recentRuns[0].status}>{recentRuns[0].status}</strong>
+            <small>{recentRuns[0].sourcesChecked || recentRuns[0].sources.length} sources · {recentRuns[0].saved} saved</small>
+            <ChevronDown />
+          </summary>
+          <div className={styles.runHealthBody}>
+            {recentRuns.slice(0, 3).map((run) => (
+              <section key={run.id}>
+                <header>
+                  <div><b>{new Date(run.createdAt).toLocaleString()}</b><span>{run.execution === "qstash" ? "Background worker" : "Local worker"}</span></div>
+                  <strong data-status={run.status}>{run.status}</strong>
+                </header>
+                <p>{run.qualified} strong · {run.verification} verify · {run.rejected} filtered · {run.saved} saved</p>
+                {run.sources.length > 0 && <div>{run.sources.map((source) => <span key={source.source} data-status={source.status}>{source.source}: {source.status}{source.fetched ? ` (${source.fetched})` : ""}</span>)}</div>}
+              </section>
+            ))}
+          </div>
+        </details>
+      )}
 
       <section className={styles.controls}>
         <label className={styles.searchBox}><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search company, title, location, or skill" /></label>

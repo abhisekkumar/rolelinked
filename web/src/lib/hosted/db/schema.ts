@@ -180,6 +180,62 @@ export const hostedJobStatusEvents = pgTable(
   ],
 );
 
+export const hostedDiscoveryRuns = pgTable(
+  "hosted_discovery_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    trigger: text("trigger").default("manual").notNull(),
+    execution: text("execution").default("qstash").notNull(),
+    status: text("status").default("queued").notNull(),
+    messageId: text("message_id"),
+    attempt: integer("attempt").default(0).notNull(),
+    sourcesChecked: integer("sources_checked").default(0).notNull(),
+    providersSucceeded: integer("providers_succeeded").default(0).notNull(),
+    fetchedCount: integer("fetched_count").default(0).notNull(),
+    qualifiedCount: integer("qualified_count").default(0).notNull(),
+    verificationCount: integer("verification_count").default(0).notNull(),
+    rejectedCount: integer("rejected_count").default(0).notNull(),
+    savedCount: integer("saved_count").default(0).notNull(),
+    failureCount: integer("failure_count").default(0).notNull(),
+    errorMessage: text("error_message"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("hosted_discovery_runs_id_owner_idx").on(table.id, table.ownerId),
+    index("hosted_discovery_runs_owner_created_idx").on(table.ownerId, table.createdAt),
+  ],
+);
+
+export const hostedDiscoverySourceChecks = pgTable(
+  "hosted_discovery_source_checks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    runId: uuid("run_id").notNull(),
+    source: text("source").notNull(),
+    status: text("status").notNull(),
+    fetchedCount: integer("fetched_count").default(0).notNull(),
+    errorMessage: text("error_message"),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.runId, table.ownerId],
+      foreignColumns: [hostedDiscoveryRuns.id, hostedDiscoveryRuns.ownerId],
+      name: "hosted_discovery_source_checks_run_owner_fk",
+    }).onDelete("cascade"),
+    uniqueIndex("hosted_discovery_source_checks_run_source_idx").on(table.runId, table.source),
+    index("hosted_discovery_source_checks_owner_run_idx").on(table.ownerId, table.runId),
+  ],
+);
+
 export const webhookEvents = pgTable("webhook_events", {
   id: text("id").primaryKey(),
   eventType: text("event_type").notNull(),
@@ -204,3 +260,5 @@ export type SearchProfile = typeof searchProfiles.$inferSelect;
 export type Resume = typeof resumes.$inferSelect;
 export type ResumeVersion = typeof resumeVersions.$inferSelect;
 export type HostedJob = typeof hostedJobs.$inferSelect;
+export type HostedDiscoveryRun = typeof hostedDiscoveryRuns.$inferSelect;
+export type HostedDiscoverySourceCheck = typeof hostedDiscoverySourceChecks.$inferSelect;

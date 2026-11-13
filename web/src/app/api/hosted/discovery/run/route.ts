@@ -23,6 +23,14 @@ import { queueHostedDiscovery } from "@/lib/hosted/qstash-discovery";
 
 export const maxDuration = 60;
 
+function hostedDiscoveryWorkerDestination(request: NextRequest, deployment: string) {
+  const vercelUrl = String(process.env.VERCEL_URL || "").trim();
+  const origin = deployment !== "local" && vercelUrl
+    ? `https://${vercelUrl}`
+    : request.nextUrl.origin;
+  return new URL("/api/hosted/discovery/worker", origin).toString();
+}
+
 export async function GET(request: NextRequest) {
   try {
     const ownerId = await requireHostedUserId();
@@ -83,7 +91,10 @@ export async function POST(request: NextRequest) {
 
     if (schedulerConfigured) {
       try {
-        const destination = new URL("/api/hosted/discovery/worker", request.nextUrl.origin).toString();
+        // Queue against the immutable deployment URL. Branch aliases can stay
+        // cached at QStash's edge briefly after a preview redeploy and route a
+        // valid message to an older worker implementation.
+        const destination = hostedDiscoveryWorkerDestination(request, deployment);
         const queued = await queueHostedDiscovery({ ownerId, runId: run.id }, destination);
         await setHostedDiscoveryRunMessageId(ownerId, run.id, queued.messageId);
         const record = await getHostedDiscoveryRun(ownerId, run.id);

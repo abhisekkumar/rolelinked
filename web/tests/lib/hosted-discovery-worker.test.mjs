@@ -36,3 +36,10 @@ test("hosted discovery fails closed without QStash while local development keeps
   assert.match(runRoute, /!schedulerConfigured && deployment !== "local"/);
   assert.match(runRoute, /execution: schedulerConfigured \? "qstash" : "inline-local"/);
 });
+
+test("hosted discovery queues to the immutable Vercel deployment URL", () => {
+  assert.match(runRoute, /process\.env\.VERCEL_URL/);
+  assert.match(runRoute, /deployment !== "local"/);
+  assert.match(runRoute, /hostedDiscoveryWorkerDestination\(request, deployment\)/);
+  assert.doesNotMatch(runRoute, /const destination = new URL\("\/api\/hosted\/discovery\/worker", request\.nextUrl\.origin\)/);
+});

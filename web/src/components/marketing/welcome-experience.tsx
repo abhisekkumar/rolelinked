@@ -111,7 +111,7 @@ const pipelineSteps = [
   ["Applied", "Not recorded"],
 ];
 
-export function WelcomeExperience() {
+export function WelcomeExperience({ signedIn = false }: { signedIn?: boolean }) {
   const [selectedRole, setSelectedRole] = useState(0);
   const [activeStage, setActiveStage] = useState(0);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -140,7 +140,7 @@ export function WelcomeExperience() {
       <div className={styles.auroraOne} aria-hidden="true" />
       <div className={styles.auroraTwo} aria-hidden="true" />
 
-      <MarketingHeader />
+      <MarketingHeader signedIn={signedIn} />
 
       <section className={styles.hero}>
         <div className={styles.heroCopy}>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { WelcomeExperience } from "@/components/marketing/welcome-experience";
+import { getHostedIdentity } from "@/lib/hosted/identity";
 
 export const metadata: Metadata = {
   title: "RoleLinked — run your job search like a system",
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function WelcomePage() {
-  return <WelcomeExperience />;
+export default async function WelcomePage() {
+  const identity = await getHostedIdentity();
+  return <WelcomeExperience signedIn={identity?.mode === "clerk"} />;
 }

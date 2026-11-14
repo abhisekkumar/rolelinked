@@ -30,8 +30,8 @@ import styles from "./hosted-app-shell.module.css";
 
 const navItems = [
   { label: "Today", href: "/app/today", icon: LayoutDashboard, ready: true },
-  { label: "Discover", href: "/app/discover", icon: Compass, ready: false },
-  { label: "Pipeline", href: "/app/pipeline", icon: ListChecks, ready: false },
+  { label: "Discover", href: "/app/discover", icon: Compass, ready: true },
+  { label: "Pipeline", href: "/app/pipeline", icon: ListChecks, ready: true },
   { label: "Resumes", href: "/app/resumes", icon: FileText, ready: true },
   { label: "Documents", href: "/app/documents", icon: FileStack, ready: false },
   { label: "Interviews", href: "/app/interviews", icon: MessageSquareText, ready: false },
@@ -112,8 +112,8 @@ export function HostedAppShell({
 
         <nav className={styles.mobileNav} aria-label="Mobile workspace navigation">
           <Link href="/app/today" className={pathname === "/app/today" ? styles.activeMobile : undefined}><LayoutDashboard /> Today</Link>
-          <span aria-disabled="true"><Compass /> Discover</span>
-          <span aria-disabled="true"><ListChecks /> Pipeline</span>
+          <Link href="/app/discover" className={pathname === "/app/discover" ? styles.activeMobile : undefined}><Compass /> Discover</Link>
+          <Link href="/app/pipeline" className={pathname === "/app/pipeline" ? styles.activeMobile : undefined}><ListChecks /> Pipeline</Link>
           <Link href="/app/resumes" className={pathname === "/app/resumes" ? styles.activeMobile : undefined}><FileText /> Resumes</Link>
         </nav>
 

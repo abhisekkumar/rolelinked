@@ -8,6 +8,8 @@ import {
   isHostedAuthPath,
   isHostedProtectedPath,
   isHostedDeployment,
+  isHostedPublicAssetPath,
+  isHostedSignedWorkerPath,
   isMarketingPath,
   usesStandaloneShell,
 } from "../../src/lib/deployment-mode.mjs";
@@ -68,12 +70,25 @@ test("hosted auth and API namespaces are explicit", () => {
   assert.equal(isHostedAuthPath("/__clerk/v1/client"), true);
   assert.equal(isHostedApiPath("/api/hosted/workspace"), true);
   assert.equal(isHostedApiPath("/api/pipeline"), false);
+  assert.equal(isHostedPublicAssetPath("/api/logo"), true);
+  assert.equal(isHostedPublicAssetPath("/api/cv"), false);
+  assert.equal(isHostedProtectedPath("/api/logo"), false);
   assert.equal(isHostedProtectedPath("/app/today"), true);
   assert.equal(isHostedProtectedPath("/onboarding"), true);
   assert.equal(isHostedProtectedPath("/api/hosted/workspace"), true);
+  assert.equal(isHostedProtectedPath("/app/discover"), true);
+  assert.equal(isHostedProtectedPath("/app/pipeline"), true);
+  assert.equal(isHostedProtectedPath("/api/hosted/discovery/run"), true);
+  assert.equal(isHostedSignedWorkerPath("/api/hosted/discovery/worker"), true);
+  assert.equal(isHostedProtectedPath("/api/hosted/discovery/worker"), false);
+  assert.equal(isHostedSignedWorkerPath("/api/hosted/discovery/run"), false);
+  assert.equal(isHostedProtectedPath("/api/hosted/jobs/job-id/status"), true);
   assert.equal(isHostedProtectedPath("/welcome"), false);
   assert.deepEqual(hostedRouteDecision("/sign-in"), { action: "allow" });
   assert.deepEqual(hostedRouteDecision("/api/hosted/workspace"), { action: "allow" });
+  assert.deepEqual(hostedRouteDecision("/api/logo"), { action: "allow" });
+  assert.deepEqual(hostedRouteDecision("/app/discover"), { action: "allow" });
+  assert.deepEqual(hostedRouteDecision("/app/pipeline"), { action: "allow" });
 });
 
 test("dashboard and API routes remain closed during the landing preview", () => {

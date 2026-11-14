@@ -1,0 +1,1 @@
+ALTER TABLE "search_profiles" ADD COLUMN "last_discovery_at" timestamp with time zone;

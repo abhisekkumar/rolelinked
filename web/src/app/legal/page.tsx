@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { getHostedIdentity } from "@/lib/hosted/identity";
 
 import styles from "./legal.module.css";
 
@@ -10,11 +11,12 @@ export const metadata: Metadata = {
   description: "RoleLinked privacy, cookie, and terms information.",
 };
 
-export default function LegalPage() {
+export default async function LegalPage() {
+  const identity = await getHostedIdentity();
   return (
     <main className={styles.page}>
       <div className={styles.glow} aria-hidden="true" />
-      <MarketingHeader />
+      <MarketingHeader signedIn={identity?.mode === "clerk"} />
       <article className={styles.document}>
         <Link className={styles.backLink} href="/welcome">
           ← Back to RoleLinked

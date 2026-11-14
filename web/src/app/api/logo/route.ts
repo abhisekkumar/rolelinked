@@ -42,6 +42,8 @@ async function fetchFavicon(domain: string): Promise<ArrayBuffer | null> {
   }
 }
 
+const LOGO_CACHE_CONTROL = "public, max-age=604800, s-maxage=2592000, stale-while-revalidate=604800";
+
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const domain = (sp.get("domain") ?? "").trim().toLowerCase();
@@ -75,7 +77,7 @@ export async function GET(req: NextRequest) {
   try {
     const buf = await fs.readFile(file);
     if (buf.byteLength > 0) {
-      return new Response(new Uint8Array(buf), { status: 200, headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=604800" } });
+      return new Response(new Uint8Array(buf), { status: 200, headers: { "Content-Type": "image/png", "Cache-Control": LOGO_CACHE_CONTROL } });
     }
     return new Response("no logo", { status: 404 });
   } catch {
@@ -97,5 +99,5 @@ export async function GET(req: NextRequest) {
   }
 
   if (!bytes) return new Response("no logo", { status: 404 });
-  return new Response(bytes, { status: 200, headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=604800" } });
+  return new Response(bytes, { status: 200, headers: { "Content-Type": "image/png", "Cache-Control": LOGO_CACHE_CONTROL } });
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { UserButton } from "@clerk/nextjs";
 import { ArrowRight } from "lucide-react";
 
 import { CoMark } from "@/components/co-mark";
@@ -7,7 +8,7 @@ import { instrumentSerif } from "@/lib/fonts";
 
 import styles from "./marketing-header.module.css";
 
-export function MarketingHeader() {
+export function MarketingHeader({ signedIn = false }: { signedIn?: boolean }) {
   return (
     <header className={styles.header}>
       <div className={styles.headerInner}>
@@ -27,10 +28,16 @@ export function MarketingHeader() {
         </nav>
 
         <div className={styles.headerActions}>
-          <Link href="/sign-in?redirect_url=%2Fapp%2Ftoday" className={styles.signInLink}>Sign in</Link>
+          {signedIn ? (
+            <div className={styles.accountButton} aria-label="Signed-in account">
+              <UserButton />
+            </div>
+          ) : (
+            <Link href="/sign-in?redirect_url=%2Fapp%2Ftoday" className={styles.signInLink}>Sign in</Link>
+          )}
           <ThemeToggle className={styles.themeToggle} />
-          <Link href="/sign-up?redirect_url=%2Fonboarding" className={styles.headerCta}>
-            Start free <ArrowRight aria-hidden="true" />
+          <Link href={signedIn ? "/app/today" : "/sign-up?redirect_url=%2Fonboarding"} className={styles.headerCta}>
+            {signedIn ? "Open workspace" : "Start free"} <ArrowRight aria-hidden="true" />
           </Link>
         </div>
       </div>

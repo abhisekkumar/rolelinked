@@ -1,5 +1,11 @@
 import path from "node:path";
 
+const hostedDiscoveryTraceIncludes = [
+  "../providers/**/*.mjs",
+  "../url-key.mjs",
+  "../user-agent.mjs",
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Hosted local previews bind to `localhost` so Clerk and Next agree on the
@@ -12,11 +18,8 @@ const nextConfig = {
   // modules in the server function instead of maintaining a hosted-only copy.
   outputFileTracingRoot: path.join(import.meta.dirname, ".."),
   outputFileTracingIncludes: {
-    "/api/hosted/discovery/run": [
-      "../providers/**/*.mjs",
-      "../url-key.mjs",
-      "../user-agent.mjs",
-    ],
+    "/api/hosted/discovery/run": hostedDiscoveryTraceIncludes,
+    "/api/hosted/discovery/worker": hostedDiscoveryTraceIncludes,
   },
   // Allow a throwaway build dir (e.g. BUILD_DIST=.next-prod) so a production
   // `next build` can run without clobbering a live `next dev` .next.

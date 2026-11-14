@@ -10,6 +10,7 @@ const queue = readFileSync(path.join(here, "../../src/lib/hosted/qstash-discover
 const runRoute = readFileSync(path.join(here, "../../src/app/api/hosted/discovery/run/route.ts"), "utf8");
 const repository = readFileSync(path.join(here, "../../src/lib/hosted/db/repository.ts"), "utf8");
 const deploymentMode = readFileSync(path.join(here, "../../src/lib/deployment-mode.mjs"), "utf8");
+const nextConfig = readFileSync(path.join(here, "../../next.config.mjs"), "utf8");
 
 test("discovery worker verifies the QStash signature, body, and delivery region", () => {
   assert.match(worker, /Receiver/);
@@ -64,6 +65,13 @@ test("hosted discovery queues to the immutable Vercel deployment URL", () => {
   assert.match(runRoute, /deployment !== "local"/);
   assert.match(runRoute, /hostedDiscoveryWorkerDestination\(request, deployment\)/);
   assert.doesNotMatch(runRoute, /const destination = new URL\("\/api\/hosted\/discovery\/worker", request\.nextUrl\.origin\)/);
+});
+
+test("Vercel traces the shared ATS providers into the queued discovery worker", () => {
+  assert.match(nextConfig, /"\/api\/hosted\/discovery\/worker": hostedDiscoveryTraceIncludes/);
+  assert.match(nextConfig, /"\.\.\/providers\/\*\*\/\*\.mjs"/);
+  assert.match(nextConfig, /"\.\.\/url-key\.mjs"/);
+  assert.match(nextConfig, /"\.\.\/user-agent\.mjs"/);
 });
 
 test("discovery reads reconcile stale tenant runs before returning progress", () => {

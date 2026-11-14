@@ -11,12 +11,10 @@ const runRoute = readFileSync(path.join(here, "../../src/app/api/hosted/discover
 const repository = readFileSync(path.join(here, "../../src/lib/hosted/db/repository.ts"), "utf8");
 const deploymentMode = readFileSync(path.join(here, "../../src/lib/deployment-mode.mjs"), "utf8");
 
-test("discovery worker verifies the QStash signature against the public URL and delivery region", () => {
+test("discovery worker verifies the QStash signature, body, and delivery region", () => {
   assert.match(worker, /Receiver/);
-  assert.match(worker, /x-forwarded-host/);
-  assert.match(worker, /x-forwarded-proto/);
-  assert.match(worker, /url: publicRequestUrl\(request\)/);
-  assert.doesNotMatch(worker, /url: request\.url/);
+  assert.doesNotMatch(worker, /publicRequestUrl/);
+  assert.doesNotMatch(worker, /url:\s*(?:request\.url|publicRequestUrl)/);
   assert.match(worker, /upstash-region/);
   assert.match(worker, /upstashRegion: upstashRegion \?\? undefined/);
   assert.match(worker, /upstash-signature/);

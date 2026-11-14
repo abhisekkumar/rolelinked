@@ -24,16 +24,6 @@ function receiverFromEnvironment() {
   return new Receiver({ currentSigningKey, nextSigningKey });
 }
 
-function publicRequestUrl(request: NextRequest) {
-  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",", 1)[0]?.trim();
-  const host = forwardedHost || request.headers.get("host")?.trim();
-  if (!host) throw new Error("Public request host is unavailable.");
-
-  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",", 1)[0]?.trim();
-  const protocol = forwardedProto === "http" ? "http" : "https";
-  return `${protocol}://${host}${request.nextUrl.pathname}${request.nextUrl.search}`;
-}
-
 function signatureFailureCategory(error: unknown) {
   const message = error instanceof Error ? error.message.toLowerCase() : "";
   if (message.includes("invalid subject")) return "subject-mismatch";
@@ -58,10 +48,10 @@ export async function POST(request: NextRequest) {
     const verified = await receiverFromEnvironment().verify({
       signature,
       body,
-      // QStash signs the public destination. On Vercel, request.url may use an
-      // internal deployment origin, so reconstruct the externally visible URL
-      // from the forwarded host before enforcing the signed subject.
-      url: publicRequestUrl(request),
+      // Match Upstash's official Next.js App Router verification pattern.
+      // Vercel can surface an alias different from the URL QStash signed, so
+      // binding verification to a reconstructed request URL produces false
+      // subject mismatches. The JWT signature and body hash remain enforced.
       upstashRegion: upstashRegion ?? undefined,
     });
     if (!verified) return NextResponse.json({ error: "Invalid queue signature." }, { status: 401 });

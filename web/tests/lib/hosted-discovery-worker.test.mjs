@@ -48,6 +48,12 @@ test("QStash publish uses deduplication, bounded retries, and per-tenant flow co
   assert.match(queue, /rate: 1/);
 });
 
+test("QStash can cross Vercel preview protection without exposing the bypass secret", () => {
+  assert.match(queue, /VERCEL_AUTOMATION_BYPASS_SECRET/);
+  assert.match(queue, /"x-vercel-protection-bypass": protectionBypass/);
+  assert.doesNotMatch(queue, /NEXT_PUBLIC_VERCEL_AUTOMATION_BYPASS_SECRET/);
+});
+
 test("hosted discovery fails closed without QStash while local development keeps an inline path", () => {
   assert.match(runRoute, /!schedulerConfigured && deployment !== "local"/);
   assert.match(runRoute, /execution: schedulerConfigured \? "qstash" : "inline-local"/);

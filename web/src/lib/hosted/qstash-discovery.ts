@@ -28,6 +28,12 @@ export async function queueHostedDiscovery(
 ) {
   const token = String(env.QSTASH_TOKEN || "").trim();
   if (!token) throw new Error("Background discovery is not configured.");
+  const protectionBypass = String(env.VERCEL_AUTOMATION_BYPASS_SECRET || "").trim();
   const client = new Client({ token });
-  return client.publishJSON(buildHostedDiscoveryPublishOptions(message, destination));
+  return client.publishJSON({
+    ...buildHostedDiscoveryPublishOptions(message, destination),
+    ...(protectionBypass
+      ? { headers: { "x-vercel-protection-bypass": protectionBypass } }
+      : {}),
+  });
 }

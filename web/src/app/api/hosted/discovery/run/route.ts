@@ -13,6 +13,7 @@ import {
   getHostedDiscoveryRun,
   getHostedProfile,
   listHostedDiscoveryRuns,
+  reconcileStaleHostedDiscoveryRuns,
   setHostedDiscoveryRunMessageId,
   startHostedDiscoveryRun,
 } from "@/lib/hosted/db/repository";
@@ -37,6 +38,7 @@ export async function GET(request: NextRequest) {
     if (!isHostedDatabaseConfigured()) {
       return NextResponse.json({ error: "Job storage is not configured yet." }, { status: 503 });
     }
+    await reconcileStaleHostedDiscoveryRuns(ownerId);
     const runId = request.nextUrl.searchParams.get("runId")?.trim();
     if (runId) {
       const record = await getHostedDiscoveryRun(ownerId, runId);
@@ -57,6 +59,7 @@ export async function POST(request: NextRequest) {
     if (!isHostedDatabaseConfigured()) {
       return NextResponse.json({ error: "Job storage is not configured yet." }, { status: 503 });
     }
+    await reconcileStaleHostedDiscoveryRuns(ownerId);
     const profile = await getHostedProfile(ownerId);
     if (!profile.search?.targetRoles?.length) {
       return NextResponse.json(

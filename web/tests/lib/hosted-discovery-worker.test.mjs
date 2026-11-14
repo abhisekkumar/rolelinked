@@ -52,3 +52,7 @@ test("hosted discovery queues to the immutable Vercel deployment URL", () => {
   assert.match(runRoute, /hostedDiscoveryWorkerDestination\(request, deployment\)/);
   assert.doesNotMatch(runRoute, /const destination = new URL\("\/api\/hosted\/discovery\/worker", request\.nextUrl\.origin\)/);
 });
+
+test("discovery reads reconcile stale tenant runs before returning progress", () => {
+  assert.match(runRoute, /reconcileStaleHostedDiscoveryRuns\(ownerId\)/);
+});

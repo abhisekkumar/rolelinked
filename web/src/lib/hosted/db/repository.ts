@@ -17,6 +17,11 @@ import {
 } from "./schema";
 import type { HostedDiscoveryRun, HostedDiscoverySourceCheck } from "./schema";
 import { assertHostedJobStatus } from "@/lib/core/hosted-job-match.mjs";
+import {
+  HOSTED_DISCOVERY_QUEUED_TIMEOUT_MESSAGE,
+  HOSTED_DISCOVERY_RUNNING_TIMEOUT_MESSAGE,
+  hostedDiscoveryStaleCutoffs,
+} from "@/lib/hosted/discovery-run-health.mjs";
 
 export type SearchProfileInput = {
   targetRoles: string[];
@@ -331,6 +336,51 @@ export async function createHostedDiscoveryRun(
   });
 }
 
+export async function reconcileStaleHostedDiscoveryRuns(
+  ownerIdValue: string,
+  nowValue = new Date(),
+) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  const now = new Date(nowValue.getTime());
+  const { queuedBefore, runningBefore } = hostedDiscoveryStaleCutoffs(now);
+
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const queued = await tx
+      .update(hostedDiscoveryRuns)
+      .set({
+        status: "failed",
+        errorMessage: HOSTED_DISCOVERY_QUEUED_TIMEOUT_MESSAGE,
+        completedAt: now,
+        updatedAt: now,
+      })
+      .where(and(
+        eq(hostedDiscoveryRuns.ownerId, ownerId),
+        eq(hostedDiscoveryRuns.status, "queued"),
+        lt(hostedDiscoveryRuns.createdAt, queuedBefore),
+      ))
+      .returning({ id: hostedDiscoveryRuns.id });
+
+    const running = await tx
+      .update(hostedDiscoveryRuns)
+      .set({
+        status: "failed",
+        errorMessage: HOSTED_DISCOVERY_RUNNING_TIMEOUT_MESSAGE,
+        completedAt: now,
+        updatedAt: now,
+      })
+      .where(and(
+        eq(hostedDiscoveryRuns.ownerId, ownerId),
+        eq(hostedDiscoveryRuns.status, "running"),
+        lt(hostedDiscoveryRuns.updatedAt, runningBefore),
+      ))
+      .returning({ id: hostedDiscoveryRuns.id });
+
+    return { queued: queued.length, running: running.length };
+  });
+}
+
 export async function setHostedDiscoveryRunMessageId(
   ownerIdValue: string,
   runId: string,
@@ -360,7 +410,7 @@ export async function startHostedDiscoveryRun(ownerIdValue: string, runId: strin
       .where(and(eq(hostedDiscoveryRuns.ownerId, ownerId), eq(hostedDiscoveryRuns.id, runId)))
       .limit(1);
     if (!existing) return { state: "missing" as const, run: null };
-    if (["succeeded", "partial"].includes(existing.status)) {
+    if (["succeeded", "partial", "failed"].includes(existing.status)) {
       return { state: "complete" as const, run: existing };
     }
     if (existing.status === "running") {

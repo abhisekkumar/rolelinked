@@ -538,6 +538,7 @@ export async function getHostedDiscoveryRun(
 
 export async function listHostedDiscoveryRuns(ownerIdValue: string, limitValue = 5) {
   const ownerId = requireTenantId(ownerIdValue);
+  await reconcileStaleHostedDiscoveryRuns(ownerId);
   const db = getHostedDatabase();
   const limit = Math.max(1, Math.min(limitValue, 20));
   return db.transaction(async (tx) => {

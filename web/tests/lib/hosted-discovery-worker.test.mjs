@@ -8,6 +8,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const worker = readFileSync(path.join(here, "../../src/app/api/hosted/discovery/worker/route.ts"), "utf8");
 const queue = readFileSync(path.join(here, "../../src/lib/hosted/qstash-discovery.ts"), "utf8");
 const runRoute = readFileSync(path.join(here, "../../src/app/api/hosted/discovery/run/route.ts"), "utf8");
+const repository = readFileSync(path.join(here, "../../src/lib/hosted/db/repository.ts"), "utf8");
 
 test("discovery worker verifies the QStash signature against the public URL and delivery region", () => {
   assert.match(worker, /Receiver/);
@@ -55,4 +56,8 @@ test("hosted discovery queues to the immutable Vercel deployment URL", () => {
 
 test("discovery reads reconcile stale tenant runs before returning progress", () => {
   assert.match(runRoute, /reconcileStaleHostedDiscoveryRuns\(ownerId\)/);
+  assert.match(
+    repository,
+    /listHostedDiscoveryRuns[\s\S]*?await reconcileStaleHostedDiscoveryRuns\(ownerId\)/,
+  );
 });

@@ -9,6 +9,7 @@ const worker = readFileSync(path.join(here, "../../src/app/api/hosted/discovery/
 const queue = readFileSync(path.join(here, "../../src/lib/hosted/qstash-discovery.ts"), "utf8");
 const runRoute = readFileSync(path.join(here, "../../src/app/api/hosted/discovery/run/route.ts"), "utf8");
 const repository = readFileSync(path.join(here, "../../src/lib/hosted/db/repository.ts"), "utf8");
+const deploymentMode = readFileSync(path.join(here, "../../src/lib/deployment-mode.mjs"), "utf8");
 
 test("discovery worker verifies the QStash signature against the public URL and delivery region", () => {
   assert.match(worker, /Receiver/);
@@ -19,6 +20,13 @@ test("discovery worker verifies the QStash signature against the public URL and 
   assert.match(worker, /upstash-region/);
   assert.match(worker, /upstashRegion: upstashRegion \?\? undefined/);
   assert.match(worker, /upstash-signature/);
+});
+
+test("QStash worker bypasses Clerk only to perform its own signature verification", () => {
+  assert.match(deploymentMode, /isHostedSignedWorkerPath/);
+  assert.match(deploymentMode, /pathname === "\/api\/hosted\/discovery\/worker"/);
+  assert.match(deploymentMode, /!isHostedSignedWorkerPath\(pathname\)/);
+  assert.match(worker, /receiverFromEnvironment\(\)\.verify/);
 });
 
 test("discovery worker logs only a safe verification category", () => {

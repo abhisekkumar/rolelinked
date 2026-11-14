@@ -50,8 +50,18 @@ export function isHostedPublicAssetPath(pathname) {
   return pathname === "/api/logo";
 }
 
+// QStash is the authenticated caller for this single machine-to-machine route.
+// Keeping it behind Clerk makes every delivery fail before the handler can
+// verify Upstash's signature. The route itself fails closed when the signature
+// or signing keys are missing/invalid; all browser-facing hosted APIs remain
+// Clerk-protected.
+export function isHostedSignedWorkerPath(pathname) {
+  return pathname === "/api/hosted/discovery/worker";
+}
+
 export function isHostedProtectedPath(pathname) {
-  return isHostedAppPath(pathname) || isHostedApiPath(pathname);
+  return isHostedAppPath(pathname)
+    || (isHostedApiPath(pathname) && !isHostedSignedWorkerPath(pathname));
 }
 
 export function usesStandaloneShell(pathname) {

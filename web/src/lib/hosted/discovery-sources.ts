@@ -16,6 +16,13 @@ import {
 
 type SourceResult = { source: string; jobs: RawJob[]; error?: string };
 
+export type HostedSourceCatalogItem = {
+  key: string;
+  name: string;
+  kind: "job-board" | "company-ats";
+  provider: string;
+};
+
 const SOURCES = {
   remotive: "https://remotive.com/api/remote-jobs",
   remoteok: "https://remoteok.com/api",
@@ -38,9 +45,26 @@ async function fetchAtsBoard(board: HostedAtsBoard): Promise<SourceResult> {
   }
 }
 
-async function fetchHostedAtsSources(): Promise<SourceResult[]> {
-  const fastBoards = HOSTED_ATS_CATALOG.filter((board) => board.provider !== "ashby");
-  const slowerAshbyBoards = HOSTED_ATS_CATALOG.filter((board) => board.provider === "ashby");
+function atsSourceKey(board: HostedAtsBoard) {
+  return `ats:${board.provider}:${board.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
+}
+
+export const HOSTED_SOURCE_CATALOG: HostedSourceCatalogItem[] = [
+  { key: "feed:remotive", name: "Remotive", kind: "job-board", provider: "Public API" },
+  { key: "feed:remoteok", name: "RemoteOK", kind: "job-board", provider: "Public API" },
+  { key: "feed:himalayas", name: "Himalayas", kind: "job-board", provider: "Public API" },
+  ...HOSTED_ATS_CATALOG.map((board) => ({
+    key: atsSourceKey(board),
+    name: board.name,
+    kind: "company-ats" as const,
+    provider: board.provider,
+  })),
+];
+
+async function fetchHostedAtsSources(enabled: Set<string> | null): Promise<SourceResult[]> {
+  const selected = HOSTED_ATS_CATALOG.filter((board) => !enabled || enabled.has(atsSourceKey(board)));
+  const fastBoards = selected.filter((board) => board.provider !== "ashby");
+  const slowerAshbyBoards = selected.filter((board) => board.provider === "ashby");
   const fastPromise = Promise.all(fastBoards.map(fetchAtsBoard));
   // Ashby's public feed has a latency floor and rate-limits bursts to one host.
   // Walk those few boards sequentially while the other ATS requests run in parallel.
@@ -159,20 +183,23 @@ async function fetchHimalayas(): Promise<RawJob[]> {
   });
 }
 
-export async function fetchHostedDiscoverySources(): Promise<SourceResult[]> {
+export async function fetchHostedDiscoverySources(enabledSourceKeys?: string[]): Promise<SourceResult[]> {
+  const enabled = enabledSourceKeys ? new Set(enabledSourceKeys) : null;
   const runners = [
-    ["Remotive", fetchRemotive],
-    ["RemoteOK", fetchRemoteOk],
-    ["Himalayas", fetchHimalayas],
+    ["feed:remotive", "Remotive", fetchRemotive],
+    ["feed:remoteok", "RemoteOK", fetchRemoteOk],
+    ["feed:himalayas", "Himalayas", fetchHimalayas],
   ] as const;
-  const feedPromise = Promise.all(runners.map(async ([source, run]) => {
+  const feedPromise = Promise.all(runners
+    .filter(([key]) => !enabled || enabled.has(key))
+    .map(async ([, source, run]) => {
     try {
       return { source, jobs: await run() };
     } catch (error) {
       return { source, jobs: [], error: error instanceof Error ? error.message : "Source unavailable" };
     }
   }));
-  const [feeds, atsBoards] = await Promise.all([feedPromise, fetchHostedAtsSources()]);
+  const [feeds, atsBoards] = await Promise.all([feedPromise, fetchHostedAtsSources(enabled)]);
   return [...feeds, ...atsBoards];
 }
 

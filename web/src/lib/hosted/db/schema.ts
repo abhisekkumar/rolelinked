@@ -113,11 +113,17 @@ export const documents = pgTable(
     kind: text("kind").notNull(),
     title: text("title").notNull(),
     storageKey: text("storage_key").notNull(),
+    originalFilename: text("original_filename").default("document").notNull(),
     contentType: text("content_type").notNull(),
     byteSize: integer("byte_size").notNull(),
+    sha256: text("sha256").default("").notNull(),
+    source: text("source").default("upload").notNull(),
     ...timestamps,
   },
-  (table) => [index("documents_owner_idx").on(table.ownerId)],
+  (table) => [
+    uniqueIndex("documents_id_owner_idx").on(table.id, table.ownerId),
+    index("documents_owner_idx").on(table.ownerId),
+  ],
 );
 
 export const hostedJobs = pgTable(
@@ -236,6 +242,101 @@ export const hostedDiscoverySourceChecks = pgTable(
   ],
 );
 
+export const hostedApplicationPackets = pgTable(
+  "hosted_application_packets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id").notNull(),
+    resumeId: uuid("resume_id"),
+    status: text("status").default("draft").notNull(),
+    sourceSnapshot: jsonb("source_snapshot")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    content: jsonb("content")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    reviewNotes: text("review_notes"),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("hosted_application_packets_owner_job_idx").on(table.ownerId, table.jobId),
+    uniqueIndex("hosted_application_packets_id_owner_idx").on(table.id, table.ownerId),
+    foreignKey({
+      columns: [table.jobId, table.ownerId],
+      foreignColumns: [hostedJobs.id, hostedJobs.ownerId],
+      name: "hosted_application_packets_job_owner_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.resumeId, table.ownerId],
+      foreignColumns: [resumes.id, resumes.ownerId],
+      name: "hosted_application_packets_resume_owner_fk",
+    }).onDelete("no action"),
+    index("hosted_application_packets_owner_status_idx").on(table.ownerId, table.status),
+  ],
+);
+
+export const hostedApplicationPacketEvents = pgTable(
+  "hosted_application_packet_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    packetId: uuid("packet_id").notNull(),
+    event: text("event").notNull(),
+    details: jsonb("details").$type<Record<string, unknown>>().default({}).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.packetId, table.ownerId],
+      foreignColumns: [hostedApplicationPackets.id, hostedApplicationPackets.ownerId],
+      name: "hosted_application_packet_events_packet_owner_fk",
+    }).onDelete("cascade"),
+    index("hosted_application_packet_events_owner_packet_idx").on(table.ownerId, table.packetId),
+  ],
+);
+
+export const hostedAutomationSchedules = pgTable(
+  "hosted_automation_schedules",
+  {
+    ownerId: text("owner_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    enabled: boolean("enabled").default(false).notNull(),
+    cadence: text("cadence").default("daily").notNull(),
+    localTime: text("local_time").default("09:00").notNull(),
+    timezone: text("timezone").default("UTC").notNull(),
+    qstashScheduleId: text("qstash_schedule_id"),
+    nextRunAt: timestamp("next_run_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    ...timestamps,
+  },
+);
+
+export const hostedSourcePreferences = pgTable(
+  "hosted_source_preferences",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sourceKey: text("source_key").notNull(),
+    enabled: boolean("enabled").default(true).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("hosted_source_preferences_owner_source_idx").on(table.ownerId, table.sourceKey),
+    index("hosted_source_preferences_owner_idx").on(table.ownerId),
+  ],
+);
+
 export const webhookEvents = pgTable("webhook_events", {
   id: text("id").primaryKey(),
   eventType: text("event_type").notNull(),
@@ -259,6 +360,10 @@ export const accountDeletionRequests = pgTable(
 export type SearchProfile = typeof searchProfiles.$inferSelect;
 export type Resume = typeof resumes.$inferSelect;
 export type ResumeVersion = typeof resumeVersions.$inferSelect;
+export type Document = typeof documents.$inferSelect;
 export type HostedJob = typeof hostedJobs.$inferSelect;
 export type HostedDiscoveryRun = typeof hostedDiscoveryRuns.$inferSelect;
 export type HostedDiscoverySourceCheck = typeof hostedDiscoverySourceChecks.$inferSelect;
+export type HostedApplicationPacket = typeof hostedApplicationPackets.$inferSelect;
+export type HostedAutomationSchedule = typeof hostedAutomationSchedules.$inferSelect;
+export type HostedSourcePreference = typeof hostedSourcePreferences.$inferSelect;

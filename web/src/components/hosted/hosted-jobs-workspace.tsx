@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   ArrowUpRight,
   BriefcaseBusiness,
@@ -424,6 +425,7 @@ export function HostedJobsWorkspace({
               <footer>
                 <a href={job.url} target="_blank" rel="noreferrer" aria-label={`Open ${job.title} at ${job.company} in a new tab`}>Open listing <ExternalLink /></a>
                 <div className={styles.quickActions}>
+                  {mode === "pipeline" && <Link href={`/app/applications?jobId=${encodeURIComponent(job.id)}`}>Prepare packet</Link>}
                   {mode === "discover" && job.status === "discovered" && <button type="button" onClick={() => changeStatus(job.id, "shortlisted")} disabled={updatingId === job.id}>Shortlist</button>}
                   {mode === "discover" && !["applied", "responded", "assessment", "interview", "offer", "hired"].includes(job.status) && <button type="button" onClick={() => changeStatus(job.id, "applied")} disabled={updatingId === job.id}><CheckCircle2 /> Mark applied</button>}
                   {mode === "pipeline" && (

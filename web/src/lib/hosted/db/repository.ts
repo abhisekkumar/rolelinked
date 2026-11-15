@@ -6,10 +6,15 @@ import { requireTenantId } from "@/lib/hosted/tenant-scope.mjs";
 import { getHostedDatabase } from "./client";
 import {
   candidateProfiles,
+  documents,
+  hostedApplicationPacketEvents,
+  hostedApplicationPackets,
+  hostedAutomationSchedules,
   hostedDiscoveryRuns,
   hostedDiscoverySourceChecks,
   hostedJobs,
   hostedJobStatusEvents,
+  hostedSourcePreferences,
   resumeVersions,
   resumes,
   searchProfiles,
@@ -116,6 +121,16 @@ export type CreateResumeInput = {
   sha256: string;
 };
 
+export type CreateDocumentInput = {
+  kind: string;
+  title: string;
+  storageKey: string;
+  originalFilename: string;
+  contentType: string;
+  byteSize: number;
+  sha256: string;
+};
+
 export async function createHostedResume(ownerIdValue: string, input: CreateResumeInput) {
   const ownerId = requireTenantId(ownerIdValue);
   await ensureHostedUser(ownerId);
@@ -191,10 +206,73 @@ export async function deleteHostedResumeRecord(ownerIdValue: string, resumeId: s
   const db = getHostedDatabase();
   return db.transaction(async (tx) => {
     await setTenant(tx, ownerId);
+    // Preserve application-packet history while releasing the reference before
+    // the tenant-owned resume is deleted. The composite tenant FK deliberately
+    // cannot use SET NULL because that would also null the packet owner.
+    await tx
+      .update(hostedApplicationPackets)
+      .set({ resumeId: null, updatedAt: new Date() })
+      .where(and(
+        eq(hostedApplicationPackets.ownerId, ownerId),
+        eq(hostedApplicationPackets.resumeId, resumeId),
+      ));
     return tx
       .delete(resumes)
       .where(and(eq(resumes.ownerId, ownerId), eq(resumes.id, resumeId)))
       .returning({ id: resumes.id });
+  });
+}
+
+export async function createHostedDocument(ownerIdValue: string, input: CreateDocumentInput) {
+  const ownerId = requireTenantId(ownerIdValue);
+  await ensureHostedUser(ownerId);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [document] = await tx
+      .insert(documents)
+      .values({ ownerId, ...input })
+      .returning();
+    return document;
+  });
+}
+
+export async function listHostedDocuments(ownerIdValue: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    return tx
+      .select()
+      .from(documents)
+      .where(eq(documents.ownerId, ownerId))
+      .orderBy(desc(documents.updatedAt));
+  });
+}
+
+export async function getHostedDocument(ownerIdValue: string, documentId: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [document] = await tx
+      .select()
+      .from(documents)
+      .where(and(eq(documents.ownerId, ownerId), eq(documents.id, documentId)))
+      .limit(1);
+    return document ?? null;
+  });
+}
+
+export async function deleteHostedDocumentRecord(ownerIdValue: string, documentId: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    return tx
+      .delete(documents)
+      .where(and(eq(documents.ownerId, ownerId), eq(documents.id, documentId)))
+      .returning({ id: documents.id });
   });
 }
 
@@ -584,6 +662,20 @@ export async function listHostedJobs(ownerIdValue: string, options: { status?: s
   });
 }
 
+export async function getHostedJob(ownerIdValue: string, jobId: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [job] = await tx
+      .select()
+      .from(hostedJobs)
+      .where(and(eq(hostedJobs.ownerId, ownerId), eq(hostedJobs.id, jobId)))
+      .limit(1);
+    return job ?? null;
+  });
+}
+
 export async function updateHostedJobStatus(
   ownerIdValue: string,
   jobId: string,
@@ -616,5 +708,235 @@ export async function updateHostedJobStatus(
       note: note?.trim().slice(0, 500) || null,
     });
     return updated;
+  });
+}
+
+export const HOSTED_PACKET_STATUSES = ["draft", "review", "approved", "archived"] as const;
+export type HostedPacketStatus = (typeof HOSTED_PACKET_STATUSES)[number];
+
+function assertPacketStatus(value: string): HostedPacketStatus {
+  if (!HOSTED_PACKET_STATUSES.includes(value as HostedPacketStatus)) {
+    throw new Error(`Unsupported application packet status: ${value}`);
+  }
+  return value as HostedPacketStatus;
+}
+
+export type HostedApplicationPacketInput = {
+  jobId: string;
+  resumeId?: string | null;
+  content: Record<string, unknown>;
+  reviewNotes?: string | null;
+  status?: HostedPacketStatus;
+};
+
+export async function saveHostedApplicationPacket(
+  ownerIdValue: string,
+  input: HostedApplicationPacketInput,
+) {
+  const ownerId = requireTenantId(ownerIdValue);
+  await ensureHostedUser(ownerId);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [job] = await tx
+      .select()
+      .from(hostedJobs)
+      .where(and(eq(hostedJobs.ownerId, ownerId), eq(hostedJobs.id, input.jobId)))
+      .limit(1);
+    if (!job) throw new Error("Job not found in this workspace.");
+
+    if (input.resumeId) {
+      const [resume] = await tx
+        .select({ id: resumes.id })
+        .from(resumes)
+        .where(and(eq(resumes.ownerId, ownerId), eq(resumes.id, input.resumeId)))
+        .limit(1);
+      if (!resume) throw new Error("Resume not found in this workspace.");
+    }
+
+    const status = assertPacketStatus(input.status || "draft");
+    const sourceSnapshot = {
+      job: {
+        id: job.id,
+        company: job.company,
+        title: job.title,
+        url: job.url,
+        location: job.location,
+        descriptionExcerpt: job.descriptionExcerpt,
+        compensationMinimum: job.compensationMinimum,
+        compensationMaximum: job.compensationMaximum,
+        sponsorshipSignal: job.sponsorshipSignal,
+      },
+      capturedAt: new Date().toISOString(),
+    };
+    const now = new Date();
+    const [packet] = await tx
+      .insert(hostedApplicationPackets)
+      .values({
+        ownerId,
+        jobId: job.id,
+        resumeId: input.resumeId || null,
+        status,
+        sourceSnapshot,
+        content: input.content,
+        reviewNotes: input.reviewNotes?.trim().slice(0, 2_000) || null,
+        approvedAt: status === "approved" ? now : null,
+      })
+      .onConflictDoUpdate({
+        target: [hostedApplicationPackets.ownerId, hostedApplicationPackets.jobId],
+        set: {
+          resumeId: input.resumeId || null,
+          status,
+          sourceSnapshot,
+          content: input.content,
+          reviewNotes: input.reviewNotes?.trim().slice(0, 2_000) || null,
+          approvedAt: status === "approved" ? now : null,
+          updatedAt: now,
+        },
+      })
+      .returning();
+    await tx.insert(hostedApplicationPacketEvents).values({
+      ownerId,
+      packetId: packet.id,
+      event: status,
+      details: { jobId: job.id, resumeId: input.resumeId || null },
+    });
+    return packet;
+  });
+}
+
+export async function listHostedApplicationPackets(ownerIdValue: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    return tx
+      .select({
+        packet: hostedApplicationPackets,
+        job: hostedJobs,
+        resumeName: resumes.name,
+      })
+      .from(hostedApplicationPackets)
+      .innerJoin(
+        hostedJobs,
+        and(
+          eq(hostedJobs.id, hostedApplicationPackets.jobId),
+          eq(hostedJobs.ownerId, ownerId),
+        ),
+      )
+      .leftJoin(
+        resumes,
+        and(
+          eq(resumes.id, hostedApplicationPackets.resumeId),
+          eq(resumes.ownerId, ownerId),
+        ),
+      )
+      .where(eq(hostedApplicationPackets.ownerId, ownerId))
+      .orderBy(desc(hostedApplicationPackets.updatedAt));
+  });
+}
+
+export async function getHostedApplicationPacket(ownerIdValue: string, packetId: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [packet] = await tx
+      .select({ packet: hostedApplicationPackets, job: hostedJobs, resumeName: resumes.name })
+      .from(hostedApplicationPackets)
+      .innerJoin(
+        hostedJobs,
+        and(eq(hostedJobs.id, hostedApplicationPackets.jobId), eq(hostedJobs.ownerId, ownerId)),
+      )
+      .leftJoin(
+        resumes,
+        and(eq(resumes.id, hostedApplicationPackets.resumeId), eq(resumes.ownerId, ownerId)),
+      )
+      .where(and(
+        eq(hostedApplicationPackets.ownerId, ownerId),
+        eq(hostedApplicationPackets.id, packetId),
+      ))
+      .limit(1);
+    return packet ?? null;
+  });
+}
+
+export type HostedAutomationScheduleInput = {
+  enabled: boolean;
+  cadence: "daily" | "twice-daily" | "weekly";
+  localTime: string;
+  timezone: string;
+  qstashScheduleId?: string | null;
+  nextRunAt?: Date | null;
+  lastError?: string | null;
+};
+
+export async function getHostedAutomationSchedule(ownerIdValue: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [schedule] = await tx
+      .select()
+      .from(hostedAutomationSchedules)
+      .where(eq(hostedAutomationSchedules.ownerId, ownerId))
+      .limit(1);
+    return schedule ?? null;
+  });
+}
+
+export async function saveHostedAutomationSchedule(
+  ownerIdValue: string,
+  input: HostedAutomationScheduleInput,
+) {
+  const ownerId = requireTenantId(ownerIdValue);
+  await ensureHostedUser(ownerId);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [schedule] = await tx
+      .insert(hostedAutomationSchedules)
+      .values({ ownerId, ...input })
+      .onConflictDoUpdate({
+        target: hostedAutomationSchedules.ownerId,
+        set: { ...input, updatedAt: new Date() },
+      })
+      .returning();
+    return schedule;
+  });
+}
+
+export async function listHostedSourcePreferences(ownerIdValue: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    return tx
+      .select()
+      .from(hostedSourcePreferences)
+      .where(eq(hostedSourcePreferences.ownerId, ownerId))
+      .orderBy(hostedSourcePreferences.sourceKey);
+  });
+}
+
+export async function saveHostedSourcePreference(
+  ownerIdValue: string,
+  sourceKey: string,
+  enabled: boolean,
+) {
+  const ownerId = requireTenantId(ownerIdValue);
+  await ensureHostedUser(ownerId);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [preference] = await tx
+      .insert(hostedSourcePreferences)
+      .values({ ownerId, sourceKey, enabled })
+      .onConflictDoUpdate({
+        target: [hostedSourcePreferences.ownerId, hostedSourcePreferences.sourceKey],
+        set: { enabled, updatedAt: new Date() },
+      })
+      .returning();
+    return preference;
   });
 }

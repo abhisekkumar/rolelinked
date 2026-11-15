@@ -5,6 +5,7 @@ import { del, get, put } from "@vercel/blob";
 import { tenantObjectKey } from "@/lib/hosted/tenant-scope.mjs";
 
 export const MAX_RESUME_BYTES = 5 * 1024 * 1024;
+export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
 export const ALLOWED_RESUME_TYPES = new Set([
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -21,6 +22,8 @@ const RESUME_TYPE_BY_EXTENSION = new Map([
   ["markdown", "text/markdown"],
   ["tex", "application/x-tex"],
 ]);
+
+export const ALLOWED_DOCUMENT_TYPES = ALLOWED_RESUME_TYPES;
 
 export function resolveResumeContentType(file: Pick<File, "name" | "type">) {
   const reportedType = file.type.trim().toLowerCase();
@@ -55,6 +58,25 @@ export async function uploadPrivateResume(ownerId: string, file: File) {
     addRandomSuffix: true,
     contentType,
     maximumSizeInBytes: MAX_RESUME_BYTES,
+    cacheControlMaxAge: 60,
+  });
+  return { ...blob, contentType };
+}
+
+export async function uploadPrivateDocument(ownerId: string, file: File) {
+  if (!isPrivateObjectStoreConfigured()) throw new Error("Private object storage is not configured.");
+  const contentType = resolveResumeContentType(file);
+  if (!contentType) throw new Error("Unsupported document file type.");
+  if (file.size <= 0 || file.size > MAX_DOCUMENT_BYTES) {
+    throw new Error("Document files must be between 1 byte and 10 MB.");
+  }
+
+  const pathname = tenantObjectKey(ownerId, "documents", file.name);
+  const blob = await put(pathname, file, {
+    access: "private",
+    addRandomSuffix: true,
+    contentType,
+    maximumSizeInBytes: MAX_DOCUMENT_BYTES,
     cacheControlMaxAge: 60,
   });
   return { ...blob, contentType };

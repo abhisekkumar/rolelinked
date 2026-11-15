@@ -2,8 +2,11 @@ import "server-only";
 
 import { classifyHostedJobs } from "@/lib/core/hosted-job-match.mjs";
 import type { SearchProfile } from "@/lib/hosted/db/schema";
-import { upsertHostedJobs } from "@/lib/hosted/db/repository";
-import { fetchHostedDiscoverySources } from "@/lib/hosted/discovery-sources";
+import { listHostedSourcePreferences, upsertHostedJobs } from "@/lib/hosted/db/repository";
+import {
+  fetchHostedDiscoverySources,
+  HOSTED_SOURCE_CATALOG,
+} from "@/lib/hosted/discovery-sources";
 
 /**
  * One account-scoped discovery unit shared by the synchronous web route and
@@ -12,7 +15,16 @@ import { fetchHostedDiscoverySources } from "@/lib/hosted/discovery-sources";
  * matching engine.
  */
 export async function executeHostedDiscovery(ownerId: string, profile: SearchProfile) {
-  const sourceResults = await fetchHostedDiscoverySources();
+  const preferences = await listHostedSourcePreferences(ownerId);
+  const disabledSourceKeys = new Set(
+    preferences.filter((preference) => !preference.enabled).map((preference) => preference.sourceKey),
+  );
+  // Preferences are overrides, not an allow-list. A user toggling one source
+  // must not silently disable every source that has no persisted preference.
+  const enabledSourceKeys = HOSTED_SOURCE_CATALOG
+    .filter((source) => !disabledSourceKeys.has(source.key))
+    .map((source) => source.key);
+  const sourceResults = await fetchHostedDiscoverySources(enabledSourceKeys);
   const fetched = sourceResults.flatMap((result) => result.jobs);
   const classified = classifyHostedJobs(fetched, profile, { minimumScore: 55, limit: 100 });
   const saved = await upsertHostedJobs(ownerId, classified.accepted);

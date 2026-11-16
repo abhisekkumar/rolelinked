@@ -91,14 +91,17 @@ export function normalizeCareerOpsJob(
   const description = plainText(job.description, 5_000);
   const location = text(job.location);
   const sourceJobId = parsed.pathname.split("/").filter(Boolean).at(-1);
+  const providerLabel: Record<string, string> = {
+    greenhouse: "Greenhouse",
+    lever: "Lever",
+    ashby: "Ashby",
+    workable: "Workable",
+    icims: "iCIMS",
+  };
   return {
     source: board.kind === "job-board"
       ? board.name
-      : board.provider === "greenhouse"
-        ? "Greenhouse"
-        : board.provider === "lever"
-          ? "Lever"
-          : "Ashby",
+      : providerLabel[board.provider] || board.name,
     sourceJobId: sourceJobId || undefined,
     url: parsed.toString(),
     company: text(job.company) || board.name,

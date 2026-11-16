@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Check, Clipboard, ExternalLink, FileCheck2, LockKeyhole, PackageCheck, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { Check, Clipboard, ExternalLink, FileCheck2, FileScan, LockKeyhole, PackageCheck, Plus, ShieldCheck, Trash2 } from "lucide-react";
 
 import { instrumentSerif } from "@/lib/fonts";
 import { applicationPacketReadiness, type ApplicationAnswerDraft } from "@/lib/hosted/application-packet-readiness";
@@ -136,6 +136,7 @@ export function ApplicationPackets() {
 
         <div className={styles.packetSectionHead}><span>02</span><div><small>Evidence</small><h3>Choose the approved source</h3></div></div>
         <label>Resume<select value={resumeId} onChange={(event) => setResumeId(event.target.value)}><option value="">No resume selected</option>{resumes.map((resume) => <option key={resume.id} value={resume.id}>{resume.name} — {resume.roleType}</option>)}</select></label>
+        {selectedJobId && resumeId && <a className={styles.atsCheckLink} href={`/app/ats-check?jobId=${encodeURIComponent(selectedJobId)}&resumeId=${encodeURIComponent(resumeId)}`}><FileScan /> Check this resume against the role</a>}
 
         <div className={styles.packetSectionHead}><span>03</span><div><small>Draft</small><h3>Write only what the evidence supports</h3></div></div>
         <label>Supported professional summary<div className={styles.fieldWithAction}><textarea value={professionalSummary} onChange={(event) => setProfessionalSummary(event.target.value)} placeholder="Write only claims supported by the selected resume." /><button type="button" onClick={() => copy(professionalSummary, "Summary")} aria-label="Copy professional summary"><Clipboard /></button></div></label>

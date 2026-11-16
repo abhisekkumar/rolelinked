@@ -42,12 +42,16 @@ async function loadSharedProviders() {
     import(/* webpackIgnore: true */ fromRoot("greenhouse.mjs")),
     import(/* webpackIgnore: true */ fromRoot("lever.mjs")),
     import(/* webpackIgnore: true */ fromRoot("ashby.mjs")),
+    import(/* webpackIgnore: true */ fromRoot("workable.mjs")),
+    import(/* webpackIgnore: true */ fromRoot("icims.mjs")),
     import(/* webpackIgnore: true */ fromRoot("_http.mjs")),
-  ]).then(([greenhouse, lever, ashby, http]) => ({
+  ]).then(([greenhouse, lever, ashby, workable, icims, http]) => ({
     providers: {
       greenhouse: greenhouse.default,
       lever: lever.default,
       ashby: ashby.default,
+      workable: workable.default,
+      icims: icims.default,
     },
     makeHttpCtx: http.makeHttpCtx,
   }));

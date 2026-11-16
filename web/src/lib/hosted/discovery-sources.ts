@@ -67,18 +67,19 @@ async function fetchSharedPublicFeed(source: HostedPublicFeed): Promise<SourceRe
 
 async function fetchHostedAtsSources(enabled: Set<string> | null): Promise<SourceResult[]> {
   const selected = HOSTED_ATS_CATALOG.filter((board) => !enabled || enabled.has(atsSourceKey(board)));
-  const fastBoards = selected.filter((board) => board.provider !== "ashby");
-  const slowerAshbyBoards = selected.filter((board) => board.provider === "ashby");
+  const serializedProviders = new Set(["ashby", "workable"]);
+  const fastBoards = selected.filter((board) => !serializedProviders.has(board.provider));
+  const slowerBoards = selected.filter((board) => serializedProviders.has(board.provider));
   const fastPromise = Promise.all(fastBoards.map(fetchAtsBoard));
-  // Ashby's public feed has a latency floor and rate-limits bursts to one host.
-  // Walk those few boards sequentially while the other ATS requests run in parallel.
-  const ashbyPromise = (async () => {
+  // Ashby and Workable rate-limit bursts on their shared public hosts. Walk
+  // those boards sequentially while independent ATS requests run in parallel.
+  const serializedPromise = (async () => {
     const results: SourceResult[] = [];
-    for (const board of slowerAshbyBoards) results.push(await fetchAtsBoard(board));
+    for (const board of slowerBoards) results.push(await fetchAtsBoard(board));
     return results;
   })();
-  const [fast, ashby] = await Promise.all([fastPromise, ashbyPromise]);
-  return [...fast, ...ashby];
+  const [fast, serialized] = await Promise.all([fastPromise, serializedPromise]);
+  return [...fast, ...serialized];
 }
 
 function validHttpsUrl(value: unknown, trustedHosts: string[]) {

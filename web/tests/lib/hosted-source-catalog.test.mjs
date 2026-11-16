@@ -22,6 +22,7 @@ register(`data:text/javascript,${encodeURIComponent(loader)}`, hostedRoot);
 assert.equal(existsSync(new URL("ats-catalog.ts", hostedRoot)), true);
 
 const { HOSTED_SOURCE_CATALOG, PUBLIC_FEEDS } = await import("../../src/lib/hosted/source-catalog.ts");
+const { normalizeCareerOpsJob } = await import("../../src/lib/hosted/source-normalize.ts");
 
 test("hosted discovery exposes the broad public board catalog", () => {
   assert.ok(PUBLIC_FEEDS.length >= 18);
@@ -46,4 +47,18 @@ test("expensive specialty boards are opt-in while the core remote feeds start en
 
 test("the public catalog does not claim a LinkedIn integration", () => {
   assert.equal(HOSTED_SOURCE_CATALOG.some((source) => /linkedin/i.test(source.name)), false);
+});
+
+test("hosted company sources span five public ATS providers", () => {
+  const ats = HOSTED_SOURCE_CATALOG.filter((source) => source.kind === "company-ats");
+  assert.ok(ats.length >= 17);
+  assert.deepEqual(new Set(ats.map((source) => source.provider)), new Set(["greenhouse", "lever", "ashby", "workable", "icims"]));
+  for (const required of ["Hugging Face", "Toggl", "Doist", "Semios", "Nortal"])
+    assert.ok(ats.some((source) => source.name === required), `${required} is missing`);
+});
+
+test("new ATS providers retain their provider label on normalized jobs", () => {
+  const job = { title: "Data Engineer", url: "https://example.com/jobs/1", company: "Example" };
+  assert.equal(normalizeCareerOpsJob(job, { name: "Example", provider: "workable" })?.source, "Workable");
+  assert.equal(normalizeCareerOpsJob(job, { name: "Example", provider: "icims" })?.source, "iCIMS");
 });

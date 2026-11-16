@@ -1,32 +1,114 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Globe2, Radar, ShieldCheck } from "lucide-react";
+import { Building2, Globe2, Radar, Search, ShieldCheck, SlidersHorizontal } from "lucide-react";
 
 import { instrumentSerif } from "@/lib/fonts";
 import styles from "./career-operations.module.css";
 
-type Source = { key: string; name: string; kind: "job-board" | "company-ats"; provider: string; enabled: boolean };
+type Source = {
+  key: string;
+  name: string;
+  kind: "job-board" | "company-ats";
+  provider: string;
+  description: string;
+  coverage: string;
+  defaultEnabled: boolean;
+  enabled: boolean;
+};
 
 export function SourceControls() {
   const [sources, setSources] = useState<Source[]>([]);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "enabled" | "paused">("all");
   const [message, setMessage] = useState<string | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busy, setBusy] = useState<Set<string>>(new Set());
+
   const load = useCallback(async () => {
     const response = await fetch("/api/hosted/sources", { cache: "no-store" });
     const body = await response.json().catch(() => ({}));
-    if (response.ok) setSources(body.sources || []); else setMessage(body.error || "Sources are unavailable.");
+    if (response.ok) setSources(body.sources || []);
+    else setMessage(body.error || "Sources are unavailable.");
   }, []);
   useEffect(() => { void load(); }, [load]);
-  const groups = useMemo(() => ({ boards: sources.filter((item) => item.kind === "job-board"), companies: sources.filter((item) => item.kind === "company-ats") }), [sources]);
-  async function toggle(source: Source) {
-    setBusy(source.key); setMessage(null);
-    const response = await fetch("/api/hosted/sources", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ sourceKey: source.key, enabled: !source.enabled }) });
+
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return sources.filter((source) => {
+      if (filter === "enabled" && !source.enabled) return false;
+      if (filter === "paused" && source.enabled) return false;
+      return !needle || `${source.name} ${source.provider} ${source.coverage} ${source.description}`.toLowerCase().includes(needle);
+    });
+  }, [filter, query, sources]);
+  const groups = useMemo(() => ({
+    boards: visible.filter((item) => item.kind === "job-board"),
+    companies: visible.filter((item) => item.kind === "company-ats"),
+  }), [visible]);
+
+  async function persist(source: Source, enabled: boolean) {
+    const response = await fetch("/api/hosted/sources", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sourceKey: source.key, enabled }),
+    });
     const body = await response.json().catch(() => ({}));
-    if (response.ok) { setSources((current) => current.map((item) => item.key === source.key ? { ...item, enabled: !item.enabled } : item)); setMessage(`${source.name} ${source.enabled ? "disabled" : "enabled"} for future scans.`); }
-    else setMessage(body.error || "The source could not be updated.");
-    setBusy(null);
+    if (!response.ok) throw new Error(body.error || `Could not update ${source.name}.`);
   }
-  const renderGroup = (title: string, lead: string, items: Source[], icon: React.ReactNode) => <section className={styles.card}><div className={styles.libraryHead}><div><small>{lead}</small><h2>{title}</h2></div>{icon}</div><div className={styles.sourceList}>{items.map((source) => <div className={styles.sourceRow} key={source.key}><div><strong>{source.name}</strong><small>{source.provider} · {source.enabled ? "Included in discovery" : "Paused"}</small></div><button type="button" className={`${styles.switch} ${source.enabled ? styles.switchOn : ""}`} onClick={() => toggle(source)} disabled={busy === source.key} aria-label={`${source.enabled ? "Disable" : "Enable"} ${source.name}`} aria-pressed={source.enabled}><span /></button></div>)}</div></section>;
-  return <div className={styles.page}><header className={styles.heading}><div><p className={styles.eyebrow}>Discovery sources</p><h1 className={instrumentSerif.className}>Choose where RoleLinked looks.</h1><p>Control job boards and company ATS feeds per account. Changes affect future scans only; existing saved roles remain in your private pipeline.</p></div><div className={styles.safety}><ShieldCheck /><span><strong>Public sources only</strong>No LinkedIn session scraping or credential sharing</span></div></header>{message && <p className={styles.message} aria-live="polite">{message}</p>}<div className={styles.sourceGroups}>{renderGroup("Remote job boards", "Broad public feeds", groups.boards, <Globe2 />)}{renderGroup("Company career sites", "Public ATS feeds", groups.companies, <Building2 />)}</div><div className={styles.safety} style={{ marginTop: "1rem" }}><Radar /><span><strong>{sources.filter((item) => item.enabled).length} sources enabled</strong>Discovery continues to apply your role, location, compensation, and sponsorship rules.</span></div></div>;
+
+  async function toggle(source: Source) {
+    setBusy((current) => new Set(current).add(source.key));
+    setMessage(null);
+    try {
+      await persist(source, !source.enabled);
+      setSources((current) => current.map((item) => item.key === source.key ? { ...item, enabled: !item.enabled } : item));
+      setMessage(`${source.name} ${source.enabled ? "paused" : "enabled"} for future scans.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The source could not be updated.");
+    } finally {
+      setBusy((current) => { const next = new Set(current); next.delete(source.key); return next; });
+    }
+  }
+
+  async function setVisible(enabled: boolean) {
+    const changed = visible.filter((source) => source.enabled !== enabled);
+    if (!changed.length) return;
+    setBusy(new Set(changed.map((source) => source.key)));
+    setMessage(null);
+    const results = await Promise.allSettled(changed.map((source) => persist(source, enabled)));
+    const succeeded = new Set(changed.filter((_, index) => results[index].status === "fulfilled").map((source) => source.key));
+    setSources((current) => current.map((source) => succeeded.has(source.key) ? { ...source, enabled } : source));
+    const failures = results.length - succeeded.size;
+    setMessage(failures ? `${succeeded.size} sources updated; ${failures} could not be changed.` : `${succeeded.size} visible sources ${enabled ? "enabled" : "paused"}.`);
+    setBusy(new Set());
+  }
+
+  const renderGroup = (title: string, lead: string, items: Source[], icon: React.ReactNode) => (
+    <section className={styles.card}>
+      <div className={styles.libraryHead}><div><small>{lead}</small><h2>{title}</h2><p>{items.filter((item) => item.enabled).length} enabled · {items.length} shown</p></div>{icon}</div>
+      <div className={styles.sourceList}>{items.length ? items.map((source) => (
+        <div className={styles.sourceRow} key={source.key}>
+          <div className={styles.sourceCopy}>
+            <div className={styles.sourceTitle}><strong>{source.name}</strong>{!source.defaultEnabled && <span>Optional</span>}</div>
+            <p>{source.description}</p>
+            <small>{source.provider} · {source.coverage}</small>
+          </div>
+          <button type="button" className={`${styles.switch} ${source.enabled ? styles.switchOn : ""}`} onClick={() => toggle(source)} disabled={busy.has(source.key)} aria-label={`${source.enabled ? "Disable" : "Enable"} ${source.name}`} aria-pressed={source.enabled}><span /></button>
+        </div>
+      )) : <div className={styles.empty}>No sources match this view.</div>}</div>
+    </section>
+  );
+
+  const enabledCount = sources.filter((item) => item.enabled).length;
+  return <div className={styles.page}>
+    <header className={styles.heading}><div><p className={styles.eyebrow}>Discovery sources</p><h1 className={instrumentSerif.className}>Choose where RoleLinked looks.</h1><p>Use public job boards and direct company ATS feeds. Each account controls its own source mix; existing saved roles stay in its private pipeline.</p></div><div className={styles.safety}><ShieldCheck /><span><strong>Public sources only</strong>No LinkedIn session scraping or credential sharing</span></div></header>
+    {message && <p className={styles.message} aria-live="polite">{message}</p>}
+    <section className={styles.sourceToolbar} aria-label="Source catalog controls">
+      <label className={styles.sourceSearch}><Search /><span className="sr-only">Search sources</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search boards, regions, or providers" /></label>
+      <div className={styles.sourceFilters}><SlidersHorizontal />{(["all", "enabled", "paused"] as const).map((value) => <button type="button" className={filter === value ? styles.activeFilter : ""} onClick={() => setFilter(value)} key={value}>{value === "all" ? "All" : value === "enabled" ? "Enabled" : "Paused"}</button>)}</div>
+      <div className={styles.sourceBulk}><button type="button" onClick={() => setVisible(true)}>Enable shown</button><button type="button" onClick={() => setVisible(false)}>Pause shown</button></div>
+    </section>
+    <div className={styles.sourceSummary}><strong>{enabledCount} of {sources.length} sources enabled</strong><span>Only enabled sources run. Optional regional and specialty boards start paused to keep scans fast.</span></div>
+    <div className={styles.sourceGroups}>{renderGroup("Public job boards", "Broad and specialty feeds", groups.boards, <Globe2 />)}{renderGroup("Company career sites", "Direct public ATS feeds", groups.companies, <Building2 />)}</div>
+    <div className={styles.safety} style={{ marginTop: "1rem" }}><Radar /><span><strong>Preferences still decide what survives</strong>Role, location, compensation, and sponsorship filters apply after source collection.</span></div>
+  </div>;
 }

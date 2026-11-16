@@ -16,13 +16,11 @@ import {
  */
 export async function executeHostedDiscovery(ownerId: string, profile: SearchProfile) {
   const preferences = await listHostedSourcePreferences(ownerId);
-  const disabledSourceKeys = new Set(
-    preferences.filter((preference) => !preference.enabled).map((preference) => preference.sourceKey),
-  );
-  // Preferences are overrides, not an allow-list. A user toggling one source
-  // must not silently disable every source that has no persisted preference.
+  const preferenceByKey = new Map(preferences.map((preference) => [preference.sourceKey, preference.enabled]));
+  // Preferences are overrides. New lightweight feeds may opt in by default,
+  // while regional or heavier catalogs stay visible but paused until chosen.
   const enabledSourceKeys = HOSTED_SOURCE_CATALOG
-    .filter((source) => !disabledSourceKeys.has(source.key))
+    .filter((source) => preferenceByKey.get(source.key) ?? source.defaultEnabled)
     .map((source) => source.key);
   const sourceResults = await fetchHostedDiscoverySources(enabledSourceKeys);
   const fetched = sourceResults.flatMap((result) => result.jobs);

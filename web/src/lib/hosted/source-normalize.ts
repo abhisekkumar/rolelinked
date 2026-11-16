@@ -1,4 +1,8 @@
-import type { HostedAtsBoard } from "./ats-catalog";
+type HostedSourceDescriptor = {
+  name: string;
+  provider: string;
+  kind?: "job-board" | "company-ats";
+};
 
 export type RawJob = {
   source: string;
@@ -71,7 +75,7 @@ function inferSponsorshipSignal(description: string): RawJob["sponsorshipSignal"
 
 export function normalizeCareerOpsJob(
   job: CareerOpsJob,
-  board: HostedAtsBoard,
+  board: HostedSourceDescriptor,
 ): RawJob | null {
   const title = text(job.title);
   const url = text(job.url);
@@ -88,7 +92,13 @@ export function normalizeCareerOpsJob(
   const location = text(job.location);
   const sourceJobId = parsed.pathname.split("/").filter(Boolean).at(-1);
   return {
-    source: board.provider === "greenhouse" ? "Greenhouse" : board.provider === "lever" ? "Lever" : "Ashby",
+    source: board.kind === "job-board"
+      ? board.name
+      : board.provider === "greenhouse"
+        ? "Greenhouse"
+        : board.provider === "lever"
+          ? "Lever"
+          : "Ashby",
     sourceJobId: sourceJobId || undefined,
     url: parsed.toString(),
     company: text(job.company) || board.name,

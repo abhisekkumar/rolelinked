@@ -3,8 +3,14 @@ import "server-only";
 // The bridge loads the repository's hardened public-ATS providers at runtime.
 // Keeping this boundary in plain server JavaScript prevents the web compiler
 // from treating the entire CLI provider tree as TypeScript application code.
-import { fetchCareerOpsAtsBoard } from "./ats-provider-bridge.mjs";
+import { fetchCareerOpsAtsBoard, fetchCareerOpsPublicFeed } from "./ats-provider-bridge.mjs";
 import { HOSTED_ATS_CATALOG, type HostedAtsBoard } from "./ats-catalog";
+import {
+  HOSTED_SOURCE_CATALOG,
+  PUBLIC_FEEDS,
+  atsSourceKey,
+  type HostedPublicFeed,
+} from "./source-catalog";
 import {
   normalizeCareerOpsJob,
   plainText,
@@ -16,12 +22,7 @@ import {
 
 type SourceResult = { source: string; jobs: RawJob[]; error?: string };
 
-export type HostedSourceCatalogItem = {
-  key: string;
-  name: string;
-  kind: "job-board" | "company-ats";
-  provider: string;
-};
+export { HOSTED_SOURCE_CATALOG } from "./source-catalog";
 
 const SOURCES = {
   remotive: "https://remotive.com/api/remote-jobs",
@@ -45,21 +46,24 @@ async function fetchAtsBoard(board: HostedAtsBoard): Promise<SourceResult> {
   }
 }
 
-function atsSourceKey(board: HostedAtsBoard) {
-  return `ats:${board.provider}:${board.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
+async function fetchSharedPublicFeed(source: HostedPublicFeed): Promise<SourceResult> {
+  try {
+    const jobs = await fetchCareerOpsPublicFeed({
+      name: source.name,
+      provider: source.adapter,
+      entry: { name: source.name, provider: source.adapter, ...source.entry },
+    }) as CareerOpsJob[];
+    return {
+      source: source.name,
+      jobs: jobs.flatMap((job) => {
+        const normalized = normalizeCareerOpsJob(job, { name: source.name, provider: source.adapter, kind: "job-board" });
+        return normalized ? [normalized] : [];
+      }),
+    };
+  } catch (error) {
+    return { source: source.name, jobs: [], error: error instanceof Error ? error.message : "Source unavailable" };
+  }
 }
-
-export const HOSTED_SOURCE_CATALOG: HostedSourceCatalogItem[] = [
-  { key: "feed:remotive", name: "Remotive", kind: "job-board", provider: "Public API" },
-  { key: "feed:remoteok", name: "RemoteOK", kind: "job-board", provider: "Public API" },
-  { key: "feed:himalayas", name: "Himalayas", kind: "job-board", provider: "Public API" },
-  ...HOSTED_ATS_CATALOG.map((board) => ({
-    key: atsSourceKey(board),
-    name: board.name,
-    kind: "company-ats" as const,
-    provider: board.provider,
-  })),
-];
 
 async function fetchHostedAtsSources(enabled: Set<string> | null): Promise<SourceResult[]> {
   const selected = HOSTED_ATS_CATALOG.filter((board) => !enabled || enabled.has(atsSourceKey(board)));
@@ -190,6 +194,7 @@ export async function fetchHostedDiscoverySources(enabledSourceKeys?: string[]):
     ["feed:remoteok", "RemoteOK", fetchRemoteOk],
     ["feed:himalayas", "Himalayas", fetchHimalayas],
   ] as const;
+  const sharedFeeds = PUBLIC_FEEDS.filter((source) => source.adapter !== "manual" && (!enabled || enabled.has(source.key)));
   const feedPromise = Promise.all(runners
     .filter(([key]) => !enabled || enabled.has(key))
     .map(async ([, source, run]) => {
@@ -199,8 +204,12 @@ export async function fetchHostedDiscoverySources(enabledSourceKeys?: string[]):
       return { source, jobs: [], error: error instanceof Error ? error.message : "Source unavailable" };
     }
   }));
-  const [feeds, atsBoards] = await Promise.all([feedPromise, fetchHostedAtsSources(enabled)]);
-  return [...feeds, ...atsBoards];
+  const [feeds, extendedFeeds, atsBoards] = await Promise.all([
+    feedPromise,
+    Promise.all(sharedFeeds.map(fetchSharedPublicFeed)),
+    fetchHostedAtsSources(enabled),
+  ]);
+  return [...feeds, ...extendedFeeds, ...atsBoards];
 }
 
 export type { RawJob, SourceResult };

@@ -14,7 +14,7 @@ export async function GET() {
     const preferences = await listHostedSourcePreferences(ownerId);
     const byKey = new Map(preferences.map((item) => [item.sourceKey, item.enabled]));
     return NextResponse.json({
-      sources: HOSTED_SOURCE_CATALOG.map((item) => ({ ...item, enabled: byKey.get(item.key) ?? true })),
+      sources: HOSTED_SOURCE_CATALOG.map((item) => ({ ...item, enabled: byKey.get(item.key) ?? item.defaultEnabled })),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to load sources.";

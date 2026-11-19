@@ -183,24 +183,30 @@ replaceable as the service grows.
 
 ## Delivery phases
 
-1. **Public repository and staging:** publish the verified local baseline, add
-   CI, create a private staging deployment, and configure `staging.rolelinked.com`.
-2. **Identity and tenant data:** Clerk, user profile, PostgreSQL schema, object
-   storage, account deletion, and authorization tests.
-3. **Hosted discovery:** search profiles, manual scan, normalized matches,
-   idempotent workers, source health, and a safe per-user pipeline.
-4. **Schedules:** timezone-aware UI, system dispatcher, leases, retries,
-   notifications, pause/resume, and run history.
-5. **Hosted Ask and documents:** model gateway, fair-use controls, source-backed
-   answers, multiple resumes, versioned tailoring, and downloadable artifacts.
-6. **Approval workflows:** exact-payload review and auditable gates for any
-   future browser or messaging integration.
-7. **Production launch:** security review, backups/restore test, privacy/terms,
-   abuse response, monitoring, cost caps, and `rolelinked.com` DNS cutover.
+1. **Hosted foundation — complete:** CI, Vercel production, custom domain,
+   Clerk boundary, hosted-mode detection, and deployment safety.
+2. **Identity and private data — complete:** tenant-scoped profiles, Neon
+   persistence, private resume storage, onboarding, and cross-account tests.
+3. **Discovery and pipeline — complete:** configurable public sources,
+   normalized matches, explainable verification states, pipeline transitions,
+   source health, scheduled discovery, and QStash-backed execution.
+4. **Private career operations — complete:** documents, application packets,
+   immutable source snapshots, approval records, ATS diagnostics, and source
+   controls.
+5. **Evidence and document studio — next:** a provenance-aware evidence vault,
+   master content graph, visual resume and cover-letter editor, ATS Checker v2,
+   source-grounded drafting, and versioned application packets.
+6. **Decision and interview intelligence:** explainable ranking, legitimacy and
+   liveness signals, company/contact history, follow-up assistance, interview
+   continuity, offer analysis, and outcome learning.
+7. **Assisted action and production trust:** optional review-first form filling,
+   exact-payload approvals, read-only integrations, privacy controls, portable
+   export, security hardening, backups, monitoring, and disaster recovery.
 
-The production domain is the last step, not the first. A staging deployment must
-prove tenant isolation, deletion, scheduling, and cost controls before real
-candidate data is accepted.
+The production domain is active. Every remaining phase must still prove tenant
+isolation, deletion and export behavior, approval boundaries, operational cost,
+and recovery before its capabilities are treated as production-ready. Detailed
+scope and exit criteria live in [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md).
 
 ## Platform references
 

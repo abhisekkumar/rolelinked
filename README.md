@@ -99,6 +99,17 @@ not scrape signed-in LinkedIn sessions.
 | Interviews | Company research, interview plans, practice, debriefs, story-bank matching, and skills-gap analysis |
 | Integrations | Claude Code, Codex, other supported CLIs, optional plugins, and offline LinkedIn export utilities |
 
+## Product roadmap
+
+Hosted Phases 1-4 are complete: the production foundation, private identity and
+data boundary, discovery and pipeline, and private career-operations workspace
+are live. The next releases turn those foundations into an evidence-backed
+document studio, decision and interview intelligence, and finally carefully
+controlled assisted actions.
+
+See [docs/PRODUCT_ROADMAP.md](docs/PRODUCT_ROADMAP.md) for the Phase 5-7 scope,
+exit criteria, and product principles.
+
 ## Human-approval boundary
 
 RoleLinked may prepare material, open a review surface, and recommend a next step. It must not:

@@ -1,6 +1,11 @@
 import "server-only";
 
-export type HostedAtsProvider = "greenhouse" | "lever" | "ashby";
+export type HostedAtsProvider =
+  | "greenhouse"
+  | "lever"
+  | "ashby"
+  | "workable"
+  | "icims";
 
 export type HostedAtsBoard = {
   name: string;
@@ -30,4 +35,9 @@ export const HOSTED_ATS_CATALOG: HostedAtsBoard[] = [
   { name: "Supabase", provider: "ashby", careers_url: "https://jobs.ashbyhq.com/supabase" },
   { name: "Cohere", provider: "ashby", careers_url: "https://jobs.ashbyhq.com/cohere" },
   { name: "Deepgram", provider: "ashby", careers_url: "https://jobs.ashbyhq.com/deepgram" },
+  { name: "Hugging Face", provider: "workable", careers_url: "https://apply.workable.com/huggingface/" },
+  { name: "Toggl", provider: "workable", careers_url: "https://apply.workable.com/toggl" },
+  { name: "Doist", provider: "workable", careers_url: "https://apply.workable.com/doist" },
+  { name: "Semios", provider: "workable", careers_url: "https://apply.workable.com/semios/" },
+  { name: "Nortal", provider: "icims", careers_url: "https://careers-en-nortal.icims.com/jobs/search?ss=1" },
 ];

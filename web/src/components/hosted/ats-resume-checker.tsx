@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { AlertTriangle, Check, ExternalLink, FileScan, LockKeyhole, SearchCheck, ShieldCheck, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, ExternalLink, FileScan, LockKeyhole, SearchCheck, ShieldCheck, X } from "lucide-react";
 
 import { instrumentSerif } from "@/lib/fonts";
 import styles from "./ats-resume-checker.module.css";
@@ -82,8 +82,8 @@ export function AtsResumeChecker() {
     <section className={styles.workspace}>
       <form className={styles.controls} onSubmit={runCheck}>
         <div className={styles.step}><span>01</span><div><small>Select evidence</small><strong>Choose a role and resume</strong></div></div>
-        <label>Saved job<select value={jobId} onChange={(event) => setJobId(event.target.value)}><option value="">Choose a job</option>{jobs.map((job) => <option key={job.id} value={job.id}>{job.company} — {job.title}</option>)}</select></label>
-        <label>Private resume<select value={resumeId} onChange={(event) => setResumeId(event.target.value)}><option value="">Choose a resume</option>{resumes.map((resume) => <option key={resume.id} value={resume.id}>{resume.name} — {resume.roleType}</option>)}</select></label>
+        <label>Saved job<div className={styles.selectWrap}><select value={jobId} onChange={(event) => setJobId(event.target.value)}><option value="">Choose a job</option>{jobs.map((job) => <option key={job.id} value={job.id}>{job.company} — {job.title}</option>)}</select><ChevronDown aria-hidden="true" /></div></label>
+        <label>Private resume<div className={styles.selectWrap}><select value={resumeId} onChange={(event) => setResumeId(event.target.value)}><option value="">Choose a resume</option>{resumes.map((resume) => <option key={resume.id} value={resume.id}>{resume.name} — {resume.roleType}</option>)}</select><ChevronDown aria-hidden="true" /></div></label>
         <div className={styles.notice}><LockKeyhole /><p><strong>Your file stays private.</strong> RoleLinked reads the selected object for this request and does not save extracted text or the report.</p></div>
         <button disabled={!canRun}><FileScan />{busy ? "Checking resume…" : "Run private ATS check"}</button>
         {!resumes.length && <p className={styles.inlineHelp}>Upload a base resume in the Resumes section first.</p>}

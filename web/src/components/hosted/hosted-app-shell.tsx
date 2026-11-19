@@ -45,17 +45,19 @@ const navItems = [
   { label: "Automations", href: "/app/automations", icon: CalendarClock, ready: true },
   { label: "Sources", href: "/app/sources", icon: Radar, ready: true },
   { label: "Analytics", href: "/app/analytics", icon: BarChart3, ready: false },
-  { label: "Integrations", href: "/app/integrations", icon: Unplug, ready: true },
+  { label: "Admin", href: "/app/integrations", icon: Unplug, ready: true, adminOnly: true },
 ];
 
 export function HostedAppShell({
   children,
   identity,
   onboardingComplete,
+  isAdmin,
 }: {
   children: React.ReactNode;
   identity: HostedIdentity;
   onboardingComplete: boolean;
+  isAdmin: boolean;
 }) {
   const pathname = usePathname();
 
@@ -70,7 +72,7 @@ export function HostedAppShell({
         <div className={styles.previewBadge}><Sparkles /> {identity.mode === "preview" ? "Hosted workspace preview" : "Private account workspace"}</div>
 
         <nav className={styles.sideNav} aria-label="Workspace navigation">
-          {navItems.map(({ label, href, icon: Icon, ready }) => {
+          {navItems.filter((item) => !item.adminOnly || isAdmin).map(({ label, href, icon: Icon, ready }) => {
             const item = (
               <>
                 <Icon aria-hidden="true" />

@@ -11,6 +11,7 @@ export type HostedAtsBoard = {
   name: string;
   provider: HostedAtsProvider;
   careers_url: string;
+  coverage?: string;
 };
 
 /**
@@ -40,4 +41,11 @@ export const HOSTED_ATS_CATALOG: HostedAtsBoard[] = [
   { name: "Doist", provider: "workable", careers_url: "https://apply.workable.com/doist" },
   { name: "Semios", provider: "workable", careers_url: "https://apply.workable.com/semios/" },
   { name: "Nortal", provider: "icims", careers_url: "https://careers-en-nortal.icims.com/jobs/search?ss=1" },
+  { name: "HackerRank", provider: "greenhouse", careers_url: "https://job-boards.greenhouse.io/hackerrank", coverage: "India & United States" },
+  { name: "DoorDash India", provider: "greenhouse", careers_url: "https://job-boards.greenhouse.io/doordashindia", coverage: "India" },
+  { name: "AlphaSense India", provider: "greenhouse", careers_url: "https://job-boards.greenhouse.io/alphasenseindia", coverage: "India" },
+  { name: "Black Duck", provider: "greenhouse", careers_url: "https://job-boards.greenhouse.io/blackduck", coverage: "India & global" },
+  { name: "Dun & Bradstreet", provider: "lever", careers_url: "https://jobs.lever.co/dnb", coverage: "India & global" },
+  { name: "Acceldata", provider: "lever", careers_url: "https://jobs.lever.co/acceldata", coverage: "India" },
+  { name: "ION Group", provider: "lever", careers_url: "https://jobs.lever.co/ion", coverage: "India & global" },
 ];

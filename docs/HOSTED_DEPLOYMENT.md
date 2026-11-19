@@ -37,9 +37,13 @@ the host's encrypted environment settings:
 - `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/app/today`
 - `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/onboarding`
 - `CLERK_WEBHOOK_SIGNING_SECRET`
+- `ROLELINKED_ADMIN_USER_IDS` (optional comma-separated Clerk user-id allowlist)
 
 Do not paste secret keys into Git, issues, screenshots, chat logs, or client-side
 JavaScript. Clerk integration must protect server routes as well as pages.
+The deployment-infrastructure page is admin-only. Access is granted by the
+allowlist above or by setting the Clerk user's `publicMetadata.role` to
+`admin`; ordinary workspace users do not receive the Admin navigation item.
 
 For local account testing, put development values in `web/.env.local`. That
 file is ignored by Git. When both Clerk keys are absent, hosted routes remain a

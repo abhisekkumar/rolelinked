@@ -16,6 +16,16 @@ export type HostedPublicFeed = HostedSourceCatalogItem & {
   entry?: Record<string, unknown>;
 };
 
+export type HostedManualSource = {
+  key: string;
+  name: string;
+  kind: "manual-board";
+  provider: "Manual search";
+  description: string;
+  coverage: string;
+  url: string;
+};
+
 export function atsSourceKey(board: HostedAtsBoard) {
   return `ats:${board.provider}:${board.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
 }
@@ -41,6 +51,23 @@ export const PUBLIC_FEEDS: HostedPublicFeed[] = [
   { key: "feed:manfred", name: "getManfred", kind: "job-board", provider: "Public API", adapter: "manfred", coverage: "Spain & Europe · tech", description: "English-language European technology openings.", defaultEnabled: false },
 ];
 
+/**
+ * Search portals that do not have a public, contract-safe adapter in this
+ * deployment. They are deliberately links, not source toggles: RoleLinked
+ * never pretends a portal is being scanned and never asks for the user's
+ * portal credentials.
+ */
+export const MANUAL_SOURCE_DIRECTORY: HostedManualSource[] = [
+  { key: "manual:glassdoor", name: "Glassdoor", kind: "manual-board", provider: "Manual search", coverage: "Global", description: "Open Glassdoor search yourself; RoleLinked does not scrape sessions or credentials.", url: "https://www.glassdoor.com/Job/index.htm" },
+  { key: "manual:wellfound", name: "Wellfound", kind: "manual-board", provider: "Manual search", coverage: "Global · startups", description: "Browse startup roles directly, then add a promising listing to RoleLinked.", url: "https://wellfound.com/jobs" },
+  { key: "manual:naukri", name: "Naukri", kind: "manual-board", provider: "Manual search", coverage: "India", description: "Search one of India’s broad job marketplaces without sharing account credentials.", url: "https://www.naukri.com/" },
+  { key: "manual:foundit", name: "foundit", kind: "manual-board", provider: "Manual search", coverage: "India & APAC", description: "Browse India and Asia-Pacific roles directly on foundit.", url: "https://www.foundit.in/" },
+  { key: "manual:instahyre", name: "Instahyre", kind: "manual-board", provider: "Manual search", coverage: "India · tech", description: "Open a technology-focused India search and save only the roles you choose.", url: "https://www.instahyre.com/" },
+  { key: "manual:cutshort", name: "Cutshort", kind: "manual-board", provider: "Manual search", coverage: "India · tech & startups", description: "Browse Indian technology and startup roles directly.", url: "https://cutshort.io/" },
+  { key: "manual:hirist", name: "Hirist", kind: "manual-board", provider: "Manual search", coverage: "India · tech", description: "Search India-focused software, data, and infrastructure roles.", url: "https://www.hirist.tech/" },
+  { key: "manual:indeed-india", name: "Indeed India", kind: "manual-board", provider: "Manual search", coverage: "India", description: "Run a broad India search directly on Indeed without automated session access.", url: "https://in.indeed.com/" },
+];
+
 export const HOSTED_SOURCE_CATALOG: HostedSourceCatalogItem[] = [
   ...PUBLIC_FEEDS,
   ...HOSTED_ATS_CATALOG.map((board) => ({
@@ -49,7 +76,7 @@ export const HOSTED_SOURCE_CATALOG: HostedSourceCatalogItem[] = [
     kind: "company-ats" as const,
     provider: board.provider,
     description: `Direct public ${board.provider} career feed.`,
-    coverage: "Company career site",
+    coverage: board.coverage ? `${board.coverage} · company career site` : "Company career site",
     defaultEnabled: true,
   })),
 ];

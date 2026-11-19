@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { HostedAppShell } from "@/components/hosted/hosted-app-shell";
+import { isHostedAdmin } from "@/lib/hosted/admin";
 import { isHostedDatabaseConfigured } from "@/lib/hosted/config.mjs";
 import { getHostedProfile } from "@/lib/hosted/db/repository";
 import { getHostedIdentity } from "@/lib/hosted/identity";
@@ -8,6 +9,7 @@ import { getHostedIdentity } from "@/lib/hosted/identity";
 export default async function HostedWorkspaceLayout({ children }: { children: React.ReactNode }) {
   const identity = await getHostedIdentity();
   if (!identity) redirect("/sign-in");
+  const isAdmin = await isHostedAdmin(identity);
 
   let onboardingComplete = identity.mode === "preview";
   if (identity.mode === "clerk" && isHostedDatabaseConfigured()) {
@@ -19,5 +21,5 @@ export default async function HostedWorkspaceLayout({ children }: { children: Re
     }
   }
 
-  return <HostedAppShell identity={identity} onboardingComplete={onboardingComplete}>{children}</HostedAppShell>;
+  return <HostedAppShell identity={identity} onboardingComplete={onboardingComplete} isAdmin={isAdmin}>{children}</HostedAppShell>;
 }

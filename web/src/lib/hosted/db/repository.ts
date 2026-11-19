@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 
 import { requireTenantId } from "@/lib/hosted/tenant-scope.mjs";
 import { getHostedDatabase } from "./client";
@@ -302,16 +302,21 @@ export async function listHostedEvidence(ownerIdValue: string) {
       .from(hostedEvidenceItems)
       .where(eq(hostedEvidenceItems.ownerId, ownerId))
       .orderBy(desc(hostedEvidenceItems.updatedAt));
-    const usageCounts = await tx
-      .select({
-        evidenceId: hostedEvidenceUsages.evidenceId,
-        count: sql<number>`count(*)::int`,
-      })
+    const usages = await tx
+      .select()
       .from(hostedEvidenceUsages)
       .where(eq(hostedEvidenceUsages.ownerId, ownerId))
-      .groupBy(hostedEvidenceUsages.evidenceId);
-    const counts = new Map(usageCounts.map((usage) => [usage.evidenceId, usage.count]));
-    return items.map((item) => ({ ...item, usageCount: counts.get(item.id) || 0 }));
+      .orderBy(desc(hostedEvidenceUsages.createdAt));
+    const usageMap = new Map<string, typeof usages>();
+    for (const usage of usages) {
+      const existing = usageMap.get(usage.evidenceId) || [];
+      existing.push(usage);
+      usageMap.set(usage.evidenceId, existing);
+    }
+    return items.map((item) => {
+      const itemUsages = usageMap.get(item.id) || [];
+      return { ...item, usageCount: itemUsages.length, usages: itemUsages };
+    });
   });
 }
 
@@ -875,6 +880,7 @@ function assertPacketStatus(value: string): HostedPacketStatus {
 export type HostedApplicationPacketInput = {
   jobId: string;
   resumeId?: string | null;
+  evidenceIds?: string[];
   content: Record<string, unknown>;
   reviewNotes?: string | null;
   status?: HostedPacketStatus;
@@ -905,7 +911,31 @@ export async function saveHostedApplicationPacket(
       if (!resume) throw new Error("Resume not found in this workspace.");
     }
 
+    const evidenceIds = [...new Set(input.evidenceIds || [])];
+    const evidence = evidenceIds.length
+      ? await tx
+          .select({
+            id: hostedEvidenceItems.id,
+            title: hostedEvidenceItems.title,
+            verificationState: hostedEvidenceItems.verificationState,
+          })
+          .from(hostedEvidenceItems)
+          .where(and(
+            eq(hostedEvidenceItems.ownerId, ownerId),
+            inArray(hostedEvidenceItems.id, evidenceIds),
+          ))
+      : [];
+    if (evidence.length !== evidenceIds.length) {
+      throw new Error("One or more evidence items were not found in this workspace.");
+    }
+    if (evidence.some((item) => !["verified", "corrected"].includes(item.verificationState))) {
+      throw new Error("Application packets can only pin verified or corrected evidence.");
+    }
+
     const status = assertPacketStatus(input.status || "draft");
+    if (status === "approved" && evidenceIds.length === 0) {
+      throw new Error("Pin at least one verified evidence item before approving this packet.");
+    }
     const sourceSnapshot = {
       job: {
         id: job.id,
@@ -946,11 +976,27 @@ export async function saveHostedApplicationPacket(
         },
       })
       .returning();
+    await tx
+      .delete(hostedEvidenceUsages)
+      .where(and(
+        eq(hostedEvidenceUsages.ownerId, ownerId),
+        eq(hostedEvidenceUsages.surfaceType, "application-packet"),
+        eq(hostedEvidenceUsages.surfaceId, packet.id),
+      ));
+    if (evidenceIds.length) {
+      await tx.insert(hostedEvidenceUsages).values(evidence.map((item) => ({
+        ownerId,
+        evidenceId: item.id,
+        surfaceType: "application-packet",
+        surfaceId: packet.id,
+        surfaceLabel: `${job.company} — ${job.title}`,
+      })));
+    }
     await tx.insert(hostedApplicationPacketEvents).values({
       ownerId,
       packetId: packet.id,
       event: status,
-      details: { jobId: job.id, resumeId: input.resumeId || null },
+      details: { jobId: job.id, resumeId: input.resumeId || null, evidenceCount: evidenceIds.length },
     });
     return packet;
   });
@@ -961,7 +1007,7 @@ export async function listHostedApplicationPackets(ownerIdValue: string) {
   const db = getHostedDatabase();
   return db.transaction(async (tx) => {
     await setTenant(tx, ownerId);
-    return tx
+    const packets = await tx
       .select({
         packet: hostedApplicationPackets,
         job: hostedJobs,
@@ -984,6 +1030,25 @@ export async function listHostedApplicationPackets(ownerIdValue: string) {
       )
       .where(eq(hostedApplicationPackets.ownerId, ownerId))
       .orderBy(desc(hostedApplicationPackets.updatedAt));
+    if (!packets.length) return [];
+    const usages = await tx
+      .select({ evidenceId: hostedEvidenceUsages.evidenceId, surfaceId: hostedEvidenceUsages.surfaceId })
+      .from(hostedEvidenceUsages)
+      .where(and(
+        eq(hostedEvidenceUsages.ownerId, ownerId),
+        eq(hostedEvidenceUsages.surfaceType, "application-packet"),
+        inArray(hostedEvidenceUsages.surfaceId, packets.map((item) => item.packet.id)),
+      ));
+    const evidenceByPacket = new Map<string, string[]>();
+    for (const usage of usages) {
+      const current = evidenceByPacket.get(usage.surfaceId) || [];
+      current.push(usage.evidenceId);
+      evidenceByPacket.set(usage.surfaceId, current);
+    }
+    return packets.map((item) => ({
+      ...item,
+      evidenceIds: evidenceByPacket.get(item.packet.id) || [],
+    }));
   });
 }
 
@@ -1008,7 +1073,16 @@ export async function getHostedApplicationPacket(ownerIdValue: string, packetId:
         eq(hostedApplicationPackets.id, packetId),
       ))
       .limit(1);
-    return packet ?? null;
+    if (!packet) return null;
+    const usages = await tx
+      .select({ evidenceId: hostedEvidenceUsages.evidenceId })
+      .from(hostedEvidenceUsages)
+      .where(and(
+        eq(hostedEvidenceUsages.ownerId, ownerId),
+        eq(hostedEvidenceUsages.surfaceType, "application-packet"),
+        eq(hostedEvidenceUsages.surfaceId, packet.packet.id),
+      ));
+    return { ...packet, evidenceIds: usages.map((usage) => usage.evidenceId) };
   });
 }
 

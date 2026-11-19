@@ -39,6 +39,7 @@ type EvidenceItem = {
   isQuantified: boolean;
   confirmedAt: string | null;
   usageCount: number;
+  usages: { id: string; surfaceType: string; surfaceId: string; surfaceLabel: string; createdAt: string }[];
   updatedAt: string;
 };
 
@@ -255,6 +256,10 @@ export function EvidenceVault() {
                     <summary>View provenance</summary>
                     <div><strong>{item.sourceLabel}</strong><small>{titleCase(item.sourceType)}</small><blockquote>{item.sourceExcerpt}</blockquote></div>
                   </details>
+                  {item.usages.length > 0 && <details className={styles.usageGraph}>
+                    <summary>Used in {item.usages.length} artifact{item.usages.length === 1 ? "" : "s"}</summary>
+                    <ul>{item.usages.map((usage) => <li key={usage.id}><BookOpenCheck /><span><strong>{usage.surfaceLabel}</strong><small>{titleCase(usage.surfaceType)} · pinned {new Date(usage.createdAt).toLocaleDateString()}</small></span></li>)}</ul>
+                  </details>}
                   <div className={styles.itemFooter}>
                     <span>{item.usageCount ? `Used in ${item.usageCount} artifact${item.usageCount === 1 ? "" : "s"}` : "Not used in any artifact"}</span>
                     <button className={styles.delete} type="button" onClick={() => remove(item)} disabled={busy}><Trash2 />Delete</button>

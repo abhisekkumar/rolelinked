@@ -10,7 +10,8 @@ import styles from "./career-operations.module.css";
 
 type Job = { id: string; company: string; title: string; url: string; location: string; status: string; descriptionExcerpt: string };
 type Resume = { id: string; name: string; roleType: string };
-type Packet = { packet: { id: string; jobId: string; resumeId: string | null; status: string; content: Record<string, unknown>; reviewNotes: string | null; updatedAt: string }; job: Job; resumeName: string | null };
+type Evidence = { id: string; title: string; statement: string; category: string; verificationState: "verified" | "corrected"; usageCount: number };
+type Packet = { packet: { id: string; jobId: string; resumeId: string | null; status: string; content: Record<string, unknown>; reviewNotes: string | null; updatedAt: string }; job: Job; resumeName: string | null; evidenceIds: string[] };
 const EMPTY_ANSWER = { question: "", answer: "" };
 const QUEUE_STATES = ["all", "draft", "review", "approved", "archived"] as const;
 
@@ -18,10 +19,12 @@ export function ApplicationPackets() {
   const searchParams = useSearchParams();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [resumes, setResumes] = useState<Resume[]>([]);
+  const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [packets, setPackets] = useState<Packet[]>([]);
   const [selectedPacket, setSelectedPacket] = useState<Packet | null>(null);
   const [chosenJobId, setChosenJobId] = useState(searchParams.get("jobId") || "");
   const [resumeId, setResumeId] = useState("");
+  const [selectedEvidenceIds, setSelectedEvidenceIds] = useState<string[]>([]);
   const [professionalSummary, setProfessionalSummary] = useState("");
   const [coverNote, setCoverNote] = useState("");
   const [reviewNotes, setReviewNotes] = useState("");
@@ -32,16 +35,18 @@ export function ApplicationPackets() {
   const [message, setMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [jobsResponse, resumesResponse, packetsResponse] = await Promise.all([
+    const [jobsResponse, resumesResponse, evidenceResponse, packetsResponse] = await Promise.all([
       fetch("/api/hosted/jobs?view=pipeline", { cache: "no-store" }),
       fetch("/api/hosted/resumes", { cache: "no-store" }),
+      fetch("/api/hosted/evidence", { cache: "no-store" }),
       fetch("/api/hosted/application-packets", { cache: "no-store" }),
     ]);
-    const [jobsBody, resumesBody, packetsBody] = await Promise.all([
-      jobsResponse.json().catch(() => ({})), resumesResponse.json().catch(() => ({})), packetsResponse.json().catch(() => ({})),
+    const [jobsBody, resumesBody, evidenceBody, packetsBody] = await Promise.all([
+      jobsResponse.json().catch(() => ({})), resumesResponse.json().catch(() => ({})), evidenceResponse.json().catch(() => ({})), packetsResponse.json().catch(() => ({})),
     ]);
     if (jobsResponse.ok) setJobs(jobsBody.jobs || []);
     if (resumesResponse.ok) setResumes(resumesBody.resumes || []);
+    if (evidenceResponse.ok) setEvidence((evidenceBody.evidence || []).filter((item: Evidence) => item.verificationState === "verified" || item.verificationState === "corrected"));
     if (packetsResponse.ok) setPackets(packetsBody.packets || []);
     else setMessage(packetsBody.error || "Application packets are unavailable.");
   }, []);
@@ -57,6 +62,7 @@ export function ApplicationPackets() {
       ? (content.answers as ApplicationAnswerDraft[]).filter((answer) => answer && typeof answer.question === "string")
       : [];
     setResumeId(selectedPacket?.packet.resumeId || "");
+    setSelectedEvidenceIds(selectedPacket?.evidenceIds || []);
     setProfessionalSummary(String(content.professionalSummary || ""));
     setCoverNote(String(content.coverNote || ""));
     setReviewNotes(selectedPacket?.packet.reviewNotes || "");
@@ -67,10 +73,11 @@ export function ApplicationPackets() {
   const checks = useMemo(() => applicationPacketReadiness({
     jobId: selectedJobId,
     resumeId,
+    evidenceIds: selectedEvidenceIds,
     professionalSummary,
     coverNote,
     answers: answerRows,
-  }), [answerRows, coverNote, professionalSummary, resumeId, selectedJobId]);
+  }), [answerRows, coverNote, professionalSummary, resumeId, selectedEvidenceIds, selectedJobId]);
   const completion = checks.filter((item) => item.done).length;
   const visiblePackets = queueState === "all" ? packets : packets.filter((item) => item.packet.status === queueState);
 
@@ -82,6 +89,12 @@ export function ApplicationPackets() {
 
   function updateAnswer(index: number, field: keyof ApplicationAnswerDraft, value: string) {
     setAnswerRows((current) => current.map((answer, answerIndex) => answerIndex === index ? { ...answer, [field]: value } : answer));
+  }
+
+  function toggleEvidence(evidenceId: string) {
+    setSelectedEvidenceIds((current) => current.includes(evidenceId)
+      ? current.filter((id) => id !== evidenceId)
+      : [...current, evidenceId]);
   }
 
   async function copy(value: string, label: string) {
@@ -103,6 +116,7 @@ export function ApplicationPackets() {
     const payload = {
       jobId: selectedJobId,
       resumeId: resumeId || null,
+      evidenceIds: selectedEvidenceIds,
       status: packetStatus,
       reviewNotes: reviewNotes || null,
       content: {
@@ -127,7 +141,7 @@ export function ApplicationPackets() {
     {message && <p className={styles.message} aria-live="polite">{message}</p>}
     <section className={styles.packetGrid}>
       <form className={`${styles.card} ${styles.form} ${styles.packetForm}`} onSubmit={save}>
-        <div className={styles.packetSectionHead}><span>01</span><div><small>Source</small><h2>{selectedPacket ? "Review exact packet" : "Create a packet"}</h2></div><strong>{completion}/4 ready</strong></div>
+        <div className={styles.packetSectionHead}><span>01</span><div><small>Source</small><h2>{selectedPacket ? "Review exact packet" : "Create a packet"}</h2></div><strong>{completion}/5 ready</strong></div>
         <label>Role<select value={selectedJobId} onChange={(event) => chooseJob(event.target.value)} required>{jobs.map((job) => <option key={job.id} value={job.id}>{job.company} — {job.title}</option>)}</select></label>
         {selectedJob && <div className={styles.snapshot}>
           <div className={styles.snapshotHead}><div><strong>{selectedJob.company} · {selectedJob.title}</strong><p>{selectedJob.location || "Location not stated"}</p></div><a href={selectedJob.url} target="_blank" rel="noreferrer">Open original <ExternalLink /></a></div>
@@ -137,6 +151,14 @@ export function ApplicationPackets() {
         <div className={styles.packetSectionHead}><span>02</span><div><small>Evidence</small><h3>Choose the approved source</h3></div></div>
         <label>Resume<select value={resumeId} onChange={(event) => setResumeId(event.target.value)}><option value="">No resume selected</option>{resumes.map((resume) => <option key={resume.id} value={resume.id}>{resume.name} — {resume.roleType}</option>)}</select></label>
         {selectedJobId && resumeId && <a className={styles.atsCheckLink} href={`/app/ats-check?jobId=${encodeURIComponent(selectedJobId)}&resumeId=${encodeURIComponent(resumeId)}`}><FileScan /> Check this resume against the role</a>}
+        <fieldset className={styles.evidencePicker}>
+          <legend>Verified claims to pin</legend>
+          <p>The exact evidence selection is recorded with this packet. Unreviewed and narrative-only claims are intentionally unavailable.</p>
+          {evidence.length ? <div className={styles.evidenceChoices}>{evidence.map((item) => <label key={item.id}>
+            <input type="checkbox" checked={selectedEvidenceIds.includes(item.id)} onChange={() => toggleEvidence(item.id)} />
+            <span><strong>{item.title}</strong><small>{item.statement}</small></span>
+          </label>)}</div> : <div className={styles.evidenceEmpty}>No verified evidence yet. <a href="/app/evidence">Review the Evidence Vault first.</a></div>}
+        </fieldset>
 
         <div className={styles.packetSectionHead}><span>03</span><div><small>Draft</small><h3>Write only what the evidence supports</h3></div></div>
         <label>Supported professional summary<div className={styles.fieldWithAction}><textarea value={professionalSummary} onChange={(event) => setProfessionalSummary(event.target.value)} placeholder="Write only claims supported by the selected resume." /><button type="button" onClick={() => copy(professionalSummary, "Summary")} aria-label="Copy professional summary"><Clipboard /></button></div></label>
@@ -154,7 +176,7 @@ export function ApplicationPackets() {
       <section className={`${styles.card} ${styles.library} ${styles.packetQueue}`}>
         <div className={styles.libraryHead}><div><small>Approval queue</small><h2>{packets.length} packet{packets.length === 1 ? "" : "s"}</h2><p>Internal preparation only</p></div><PackageCheck /></div>
         <div className={styles.queueFilters}>{QUEUE_STATES.map((state) => <button type="button" className={queueState === state ? styles.activeFilter : ""} onClick={() => setQueueState(state)} key={state}>{state === "all" ? "All" : state}</button>)}</div>
-        {visiblePackets.length === 0 ? <div className={styles.empty}>{packets.length ? "No packets in this state." : "No packets yet. Select a role and preserve a truthful draft."}</div> : visiblePackets.map((item) => <article className={styles.packetItem} key={item.packet.id}><div className={styles.packetTop}><div><strong>{item.job.company} · {item.job.title}</strong><p>{item.resumeName ? `Resume: ${item.resumeName}` : "No resume selected"}</p></div><span className={styles.status}>{item.packet.status}</span></div><p>Updated {new Date(item.packet.updatedAt).toLocaleString()}</p><button type="button" onClick={() => { setChosenJobId(item.packet.jobId); setSelectedPacket(item); window.scrollTo({ top: 0, behavior: "smooth" }); }}><FileCheck2 /> Open exact packet</button></article>)}
+        {visiblePackets.length === 0 ? <div className={styles.empty}>{packets.length ? "No packets in this state." : "No packets yet. Select a role and preserve a truthful draft."}</div> : visiblePackets.map((item) => <article className={styles.packetItem} key={item.packet.id}><div className={styles.packetTop}><div><strong>{item.job.company} · {item.job.title}</strong><p>{item.resumeName ? `Resume: ${item.resumeName}` : "No resume selected"} · {item.evidenceIds.length} verified claim{item.evidenceIds.length === 1 ? "" : "s"}</p></div><span className={styles.status}>{item.packet.status}</span></div><p>Updated {new Date(item.packet.updatedAt).toLocaleString()}</p><button type="button" onClick={() => { setChosenJobId(item.packet.jobId); setSelectedPacket(item); window.scrollTo({ top: 0, behavior: "smooth" }); }}><FileCheck2 /> Open exact packet</button></article>)}
       </section>
     </section>
   </div>;

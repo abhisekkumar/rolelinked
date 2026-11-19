@@ -53,6 +53,10 @@ suggestions, uploaded text, or inferred metrics into approved candidate facts.
 
 ## Milestone 5.2 — Master content graph
 
+- **Implemented foundation:** verified/corrected evidence can now be pinned to
+  application packets. Packet saves replace their exact usage links in one
+  tenant-scoped transaction, and the Evidence Vault shows the artifacts using
+  each claim.
 - Build one comprehensive profile from candidate-approved evidence.
 - Create role-family views by selecting evidence rather than duplicating facts.
 - Toggle bullets, projects, achievements, and skills for each resume version.

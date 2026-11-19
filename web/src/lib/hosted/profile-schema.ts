@@ -113,6 +113,7 @@ export const hostedApplicationPacketSchema = z
   .object({
     jobId: z.string().uuid(),
     resumeId: z.string().uuid().nullable().optional(),
+    evidenceIds: z.array(z.string().uuid()).max(100).default([]),
     status: z.enum(["draft", "review", "approved", "archived"]).default("draft"),
     reviewNotes: z.string().trim().max(2_000).nullable().optional(),
     content: z

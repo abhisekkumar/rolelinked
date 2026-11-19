@@ -78,6 +78,9 @@ replacing it.
 Phase 5 makes candidate evidence the center of the product and turns document
 creation into a transparent, editable, versioned workflow.
 
+The implementation contract and milestone checklist live in
+[PHASE5_EVIDENCE_DOCUMENT_STUDIO.md](PHASE5_EVIDENCE_DOCUMENT_STUDIO.md).
+
 ### 5.1 Career Evidence Vault
 
 - Store canonical experience, projects, skills, education, certifications,
@@ -97,7 +100,7 @@ creation into a transparent, editable, versioned workflow.
 - Offer reviewed synchronization when a source fact changes; never overwrite a
   tailored version silently.
 
-### 5.3 Resume and cover-letter studio
+### 5.3 Resume studio
 
 - Structured visual editor as the default authoring surface.
 - Optional advanced Markdown/LaTeX editor for precision workflows.
@@ -106,7 +109,14 @@ creation into a transparent, editable, versioned workflow.
 - Version history, named variants, side-by-side diff, and restore.
 - Export PDF, DOCX, Markdown, and TeX without losing content ownership.
 
-### 5.4 ATS Checker v2
+### 5.4 Cover-letter studio
+
+- Create job-specific drafts from selected evidence and the archived posting.
+- Keep tone, length, company context, and paragraph structure editable.
+- Show source references for factual paragraphs and block unsupported claims.
+- Provide live preview, version history, comparison, and PDF/DOCX export.
+
+### 5.5 ATS Checker v2
 
 - Parse and display extracted name, contact, employer, title, dates, education,
   skills, and section order so the candidate can see what a parser actually read.
@@ -119,7 +129,7 @@ creation into a transparent, editable, versioned workflow.
 - Label vendor-specific compatibility profiles as heuristics; never promise an
   interview or invent a universal ATS pass probability.
 
-### 5.5 Source-grounded drafting and Ask
+### 5.6 Source-grounded drafting and Ask
 
 - Draft bullets, summaries, cover letters, and form answers only from selected
   evidence and the archived job description.
@@ -128,7 +138,7 @@ creation into a transparent, editable, versioned workflow.
 - Route models through a server-side gateway with rate limits, redacted logs,
   cost controls, and provider portability.
 
-### 5.6 Application Packet v2
+### 5.7 Application Packet v2
 
 Each packet contains an immutable, reviewable set of:
 
@@ -138,6 +148,22 @@ Each packet contains an immutable, reviewable set of:
 - ATS diagnostic report;
 - unresolved questions and candidate confirmations;
 - readiness checklist and exact approval record.
+
+### 5.8 Source and ATS expansion
+
+- Bring the supported local providers into hosted discovery in measured stages:
+  Greenhouse, Lever, Ashby, Workday, iCIMS, Dayforce, RemoteOK, Remotive,
+  Himalayas, and candidate-selected public company career sites.
+- Show provider health, last successful scan, posting counts, failure reasons,
+  deduplication, expiration signals, and per-account enable/disable controls.
+- Prefer source relevance and verifiability over raw listing volume.
+
+### 5.9 Private document preview and lifecycle
+
+- Preview supported uploaded and generated documents in the authenticated app.
+- Retain original filename, source, checksum, version, and usage links.
+- Support rename, replace, download, and deletion with storage reconciliation.
+- Verify that deletion removes both Blob content and tenant-owned metadata.
 
 ### Phase 5 exit criteria
 

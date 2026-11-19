@@ -12,6 +12,9 @@ import {
   hostedAutomationSchedules,
   hostedDiscoveryRuns,
   hostedDiscoverySourceChecks,
+  hostedEvidenceEvents,
+  hostedEvidenceItems,
+  hostedEvidenceUsages,
   hostedJobs,
   hostedJobStatusEvents,
   hostedSourcePreferences,
@@ -21,6 +24,7 @@ import {
   users,
 } from "./schema";
 import type { HostedDiscoveryRun, HostedDiscoverySourceCheck } from "./schema";
+import { applyEvidenceDecision } from "@/lib/hosted/evidence-provenance.mjs";
 import { assertHostedJobStatus } from "@/lib/core/hosted-job-match.mjs";
 import {
   HOSTED_DISCOVERY_QUEUED_TIMEOUT_MESSAGE,
@@ -129,6 +133,18 @@ export type CreateDocumentInput = {
   contentType: string;
   byteSize: number;
   sha256: string;
+};
+
+export type CreateEvidenceInput = {
+  category: string;
+  title: string;
+  statement: string;
+  sourceType: "resume" | "document" | "user-statement" | "manual-confirmation";
+  sourceResumeId?: string | null;
+  sourceDocumentId?: string | null;
+  sourceLabel: string;
+  sourceExcerpt: string;
+  isQuantified: boolean;
 };
 
 export async function createHostedResume(ownerIdValue: string, input: CreateResumeInput) {
@@ -273,6 +289,141 @@ export async function deleteHostedDocumentRecord(ownerIdValue: string, documentI
       .delete(documents)
       .where(and(eq(documents.ownerId, ownerId), eq(documents.id, documentId)))
       .returning({ id: documents.id });
+  });
+}
+
+export async function listHostedEvidence(ownerIdValue: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const items = await tx
+      .select()
+      .from(hostedEvidenceItems)
+      .where(eq(hostedEvidenceItems.ownerId, ownerId))
+      .orderBy(desc(hostedEvidenceItems.updatedAt));
+    const usageCounts = await tx
+      .select({
+        evidenceId: hostedEvidenceUsages.evidenceId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(hostedEvidenceUsages)
+      .where(eq(hostedEvidenceUsages.ownerId, ownerId))
+      .groupBy(hostedEvidenceUsages.evidenceId);
+    const counts = new Map(usageCounts.map((usage) => [usage.evidenceId, usage.count]));
+    return items.map((item) => ({ ...item, usageCount: counts.get(item.id) || 0 }));
+  });
+}
+
+export async function getHostedEvidenceItem(ownerIdValue: string, evidenceId: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [item] = await tx
+      .select()
+      .from(hostedEvidenceItems)
+      .where(and(eq(hostedEvidenceItems.ownerId, ownerId), eq(hostedEvidenceItems.id, evidenceId)))
+      .limit(1);
+    return item ?? null;
+  });
+}
+
+export async function createHostedEvidence(ownerIdValue: string, input: CreateEvidenceInput) {
+  const ownerId = requireTenantId(ownerIdValue);
+  await ensureHostedUser(ownerId);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+
+    if (input.sourceType === "resume") {
+      const [source] = await tx
+        .select({ id: resumes.id })
+        .from(resumes)
+        .where(and(eq(resumes.ownerId, ownerId), eq(resumes.id, input.sourceResumeId || "")))
+        .limit(1);
+      if (!source) throw new Error("The selected resume source was not found.");
+    }
+    if (input.sourceType === "document") {
+      const [source] = await tx
+        .select({ id: documents.id })
+        .from(documents)
+        .where(and(eq(documents.ownerId, ownerId), eq(documents.id, input.sourceDocumentId || "")))
+        .limit(1);
+      if (!source) throw new Error("The selected document source was not found.");
+    }
+
+    const [item] = await tx
+      .insert(hostedEvidenceItems)
+      .values({
+        ownerId,
+        category: input.category,
+        title: input.title,
+        statement: input.statement,
+        verificationState: "derived-unverified",
+        sourceType: input.sourceType,
+        sourceResumeId: input.sourceType === "resume" ? input.sourceResumeId : null,
+        sourceDocumentId: input.sourceType === "document" ? input.sourceDocumentId : null,
+        sourceLabel: input.sourceLabel,
+        sourceExcerpt: input.sourceExcerpt,
+        isQuantified: input.isQuantified,
+      })
+      .returning();
+    await tx.insert(hostedEvidenceEvents).values({
+      ownerId,
+      evidenceId: item.id,
+      event: "created",
+      fromState: null,
+      toState: item.verificationState,
+      details: { sourceType: item.sourceType },
+    });
+    return item;
+  });
+}
+
+export async function decideHostedEvidence(
+  ownerIdValue: string,
+  evidenceId: string,
+  decision: { action: "confirm" | "correct" | "narrative-only" | "cannot-confirm"; statement?: string },
+) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [current] = await tx
+      .select()
+      .from(hostedEvidenceItems)
+      .where(and(eq(hostedEvidenceItems.ownerId, ownerId), eq(hostedEvidenceItems.id, evidenceId)))
+      .limit(1);
+    if (!current) return null;
+
+    const next = applyEvidenceDecision(current, decision);
+    const [item] = await tx
+      .update(hostedEvidenceItems)
+      .set({ ...next, confirmedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(hostedEvidenceItems.ownerId, ownerId), eq(hostedEvidenceItems.id, evidenceId)))
+      .returning();
+    await tx.insert(hostedEvidenceEvents).values({
+      ownerId,
+      evidenceId,
+      event: decision.action,
+      fromState: current.verificationState,
+      toState: item.verificationState,
+      details: { statementChanged: current.statement !== item.statement },
+    });
+    return item;
+  });
+}
+
+export async function deleteHostedEvidence(ownerIdValue: string, evidenceId: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    return tx
+      .delete(hostedEvidenceItems)
+      .where(and(eq(hostedEvidenceItems.ownerId, ownerId), eq(hostedEvidenceItems.id, evidenceId)))
+      .returning({ id: hostedEvidenceItems.id });
   });
 }
 

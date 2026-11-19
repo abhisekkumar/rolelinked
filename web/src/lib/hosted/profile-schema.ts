@@ -51,6 +51,64 @@ export const hostedDocumentMetadataSchema = z
   })
   .strict();
 
+const evidenceCategorySchema = z.enum([
+  "experience",
+  "project",
+  "skill",
+  "education",
+  "certification",
+  "achievement",
+  "work-authorization",
+  "publication",
+  "interview-story",
+  "other",
+]);
+
+const evidenceSourceTypeSchema = z.enum([
+  "resume",
+  "document",
+  "user-statement",
+  "manual-confirmation",
+]);
+
+export const hostedEvidenceItemSchema = z
+  .object({
+    category: evidenceCategorySchema,
+    title: z.string().trim().min(2).max(140),
+    statement: z.string().trim().min(2).max(8_000),
+    sourceType: evidenceSourceTypeSchema,
+    sourceResumeId: z.string().uuid().nullable().optional(),
+    sourceDocumentId: z.string().uuid().nullable().optional(),
+    sourceLabel: z.string().trim().min(2).max(240),
+    sourceExcerpt: z.string().trim().min(2).max(8_000),
+    isQuantified: z.boolean().default(false),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const hasResume = Boolean(value.sourceResumeId);
+    const hasDocument = Boolean(value.sourceDocumentId);
+    const validReference =
+      (value.sourceType === "resume" && hasResume && !hasDocument)
+      || (value.sourceType === "document" && hasDocument && !hasResume)
+      || (["user-statement", "manual-confirmation"].includes(value.sourceType)
+        && !hasResume
+        && !hasDocument);
+    if (!validReference) {
+      context.addIssue({
+        code: "custom",
+        path: ["sourceType"],
+        message: "Choose one source that belongs to this evidence item.",
+      });
+    }
+  });
+
+export const hostedEvidenceDecisionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("confirm") }).strict(),
+  z.object({ action: z.literal("correct"), statement: z.string().trim().min(2).max(8_000) }).strict(),
+  z.object({ action: z.literal("narrative-only") }).strict(),
+  z.object({ action: z.literal("cannot-confirm") }).strict(),
+]);
+
 export const hostedApplicationPacketSchema = z
   .object({
     jobId: z.string().uuid(),

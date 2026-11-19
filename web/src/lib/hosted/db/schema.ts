@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   foreignKey,
   index,
   integer,
@@ -123,6 +124,111 @@ export const documents = pgTable(
   (table) => [
     uniqueIndex("documents_id_owner_idx").on(table.id, table.ownerId),
     index("documents_owner_idx").on(table.ownerId),
+  ],
+);
+
+export const hostedEvidenceItems = pgTable(
+  "hosted_evidence_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    category: text("category").notNull(),
+    title: text("title").notNull(),
+    statement: text("statement").notNull(),
+    verificationState: text("verification_state").default("derived-unverified").notNull(),
+    sourceType: text("source_type").notNull(),
+    sourceResumeId: uuid("source_resume_id"),
+    sourceDocumentId: uuid("source_document_id"),
+    sourceLabel: text("source_label").notNull(),
+    sourceExcerpt: text("source_excerpt").notNull(),
+    isQuantified: boolean("is_quantified").default(false).notNull(),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("hosted_evidence_items_id_owner_idx").on(table.id, table.ownerId),
+    index("hosted_evidence_items_owner_state_idx").on(table.ownerId, table.verificationState),
+    index("hosted_evidence_items_owner_category_idx").on(table.ownerId, table.category),
+    foreignKey({
+      columns: [table.sourceResumeId, table.ownerId],
+      foreignColumns: [resumes.id, resumes.ownerId],
+      name: "hosted_evidence_items_resume_owner_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.sourceDocumentId, table.ownerId],
+      foreignColumns: [documents.id, documents.ownerId],
+      name: "hosted_evidence_items_document_owner_fk",
+    }).onDelete("cascade"),
+    check(
+      "hosted_evidence_items_verification_state_check",
+      sql`${table.verificationState} in ('verified', 'corrected', 'narrative-only', 'unknown', 'derived-unverified', 'user-cannot-confirm')`,
+    ),
+    check(
+      "hosted_evidence_items_source_type_check",
+      sql`${table.sourceType} in ('resume', 'document', 'user-statement', 'manual-confirmation')`,
+    ),
+    check(
+      "hosted_evidence_items_source_reference_check",
+      sql`(
+        (${table.sourceType} = 'resume' and ${table.sourceResumeId} is not null and ${table.sourceDocumentId} is null)
+        or (${table.sourceType} = 'document' and ${table.sourceDocumentId} is not null and ${table.sourceResumeId} is null)
+        or (${table.sourceType} in ('user-statement', 'manual-confirmation') and ${table.sourceResumeId} is null and ${table.sourceDocumentId} is null)
+      )`,
+    ),
+  ],
+);
+
+export const hostedEvidenceEvents = pgTable(
+  "hosted_evidence_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    evidenceId: uuid("evidence_id").notNull(),
+    event: text("event").notNull(),
+    fromState: text("from_state"),
+    toState: text("to_state").notNull(),
+    details: jsonb("details").$type<Record<string, unknown>>().default({}).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.evidenceId, table.ownerId],
+      foreignColumns: [hostedEvidenceItems.id, hostedEvidenceItems.ownerId],
+      name: "hosted_evidence_events_item_owner_fk",
+    }).onDelete("cascade"),
+    index("hosted_evidence_events_owner_item_idx").on(table.ownerId, table.evidenceId),
+  ],
+);
+
+export const hostedEvidenceUsages = pgTable(
+  "hosted_evidence_usages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    evidenceId: uuid("evidence_id").notNull(),
+    surfaceType: text("surface_type").notNull(),
+    surfaceId: text("surface_id").notNull(),
+    surfaceLabel: text("surface_label").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.evidenceId, table.ownerId],
+      foreignColumns: [hostedEvidenceItems.id, hostedEvidenceItems.ownerId],
+      name: "hosted_evidence_usages_item_owner_fk",
+    }).onDelete("cascade"),
+    uniqueIndex("hosted_evidence_usages_owner_surface_idx").on(
+      table.ownerId,
+      table.evidenceId,
+      table.surfaceType,
+      table.surfaceId,
+    ),
   ],
 );
 
@@ -361,6 +467,9 @@ export type SearchProfile = typeof searchProfiles.$inferSelect;
 export type Resume = typeof resumes.$inferSelect;
 export type ResumeVersion = typeof resumeVersions.$inferSelect;
 export type Document = typeof documents.$inferSelect;
+export type HostedEvidenceItem = typeof hostedEvidenceItems.$inferSelect;
+export type HostedEvidenceEvent = typeof hostedEvidenceEvents.$inferSelect;
+export type HostedEvidenceUsage = typeof hostedEvidenceUsages.$inferSelect;
 export type HostedJob = typeof hostedJobs.$inferSelect;
 export type HostedDiscoveryRun = typeof hostedDiscoveryRuns.$inferSelect;
 export type HostedDiscoverySourceCheck = typeof hostedDiscoverySourceChecks.$inferSelect;

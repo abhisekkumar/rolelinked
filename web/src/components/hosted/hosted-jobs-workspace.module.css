@@ -94,3 +94,25 @@
 .compactRow .metaRow,.compactRow .factRow{font-size:.63rem;line-height:1.45}
 .compactRow .statusSelect select{font-size:.63rem}
 .compactRow footer>a{width:auto;min-width:6.7rem;padding:0 .68rem;gap:.38rem;font-size:.6rem;white-space:nowrap}
+
+/* Group pipeline stages into a legible, scannable control instead of one long
+   row of visually identical pills. These rules intentionally follow the base
+   compact stylesheet so they win without duplicating the whole legacy block. */
+.statusTabs{margin-top:.9rem;padding:.72rem;align-items:stretch;gap:.55rem;border:1px solid var(--line);border-radius:1rem;background:rgba(255,255,255,.42);scrollbar-width:thin}
+.statusGroup{padding-right:.55rem;display:grid;align-content:start;gap:.38rem;border-right:1px solid var(--line)}
+.statusGroup:last-child{padding-right:0;border-right:0}
+.statusGroup>small{padding-left:.22rem;color:var(--muted);font-size:.58rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.statusGroup>div{display:flex;gap:.32rem}
+.statusTabs .statusGroup button{min-height:2.2rem;padding:.48rem .66rem;align-items:center;justify-content:center;border-color:transparent;border-radius:.68rem;background:transparent;font-size:.66rem;transition:border-color .16s ease,background .16s ease,color .16s ease}
+.statusTabs .statusGroup button:hover{border-color:var(--line);background:var(--panel)}
+.statusTabs .statusGroup button span{min-width:1.35rem;padding:.12rem .32rem;border-radius:.45rem;color:#676b89;font-size:.58rem}
+.statusTabs .statusGroup .activeTab{color:#4f53bc;border-color:rgba(98,101,212,.28);background:#eeefff;box-shadow:0 5px 14px rgba(68,71,148,.08)}
+.statusTabs .statusGroup .activeTab span{color:white;background:#6467d5}
+.cardTop b{padding:.3rem .34rem .3rem .55rem;display:inline-flex;align-items:center;gap:.42rem;border:1px solid rgba(56,126,113,.12);border-radius:.62rem;font-size:.58rem}
+.cardTop b span{color:inherit!important;font-size:inherit!important;font-weight:800}
+.cardTop b em{padding:.18rem .34rem;border-radius:.38rem;color:#2d675d;background:rgba(255,255,255,.64);font-size:.56rem;font-style:normal;font-weight:850}
+:global(.dark) .statusTabs{background:rgba(13,29,27,.58)}
+:global(.dark) .statusTabs .statusGroup .activeTab span{color:#101b2b;background:#c5c6ff}
+:global(.dark) .cardTop b em{color:#d9fff8;background:rgba(255,255,255,.1)}
+
+@media(max-width:760px){.statusTabs{padding:.6rem}.statusGroup>small{font-size:.62rem}.statusTabs .statusGroup button{font-size:.72rem}}

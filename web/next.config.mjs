@@ -4,6 +4,10 @@ const hostedDiscoveryTraceIncludes = [
   "../providers/**/*.mjs",
   "../url-key.mjs",
   "../user-agent.mjs",
+  // Provider files are copied into /var/task/providers. Their shared HTTP
+  // module imports repository-root siblings at runtime, so keep the complete
+  // root module set beside them in the server function too.
+  "../*.mjs",
 ];
 
 /** @type {import('next').NextConfig} */

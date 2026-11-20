@@ -62,6 +62,12 @@ const STATUS_LABELS: Record<string, string> = {
   discarded: "Discarded",
 };
 
+const PIPELINE_STATUS_GROUPS = [
+  { label: "Review", statuses: ["discovered", "shortlisted"] },
+  { label: "In progress", statuses: ["applied", "responded", "assessment", "interview", "offer"] },
+  { label: "Complete", statuses: ["hired", "rejected", "discarded"] },
+] as const;
+
 const DATE_FILTERS = [
   { value: "all", label: "Any time" },
   { value: "1", label: "24h" },
@@ -387,11 +393,26 @@ export function HostedJobsWorkspace({
       </details>
 
       <section className={styles.statusTabs} aria-label="Pipeline status filters">
-        <button type="button" className={activeStatus === "all" ? styles.activeTab : undefined} onClick={() => setActiveStatus("all")}>All <span>{counts.all}</span></button>
-        {STATUSES.filter((status) => mode === "pipeline" || ["discovered", "shortlisted", "applied"].includes(status)).map((status) => (
-          <button type="button" key={status} className={activeStatus === status ? styles.activeTab : undefined} onClick={() => setActiveStatus(status)}>
-            {STATUS_LABELS[status]} <span>{counts[status]}</span>
+        <div className={styles.statusGroup}>
+          <small>Queue</small>
+          <button type="button" className={activeStatus === "all" ? styles.activeTab : undefined} onClick={() => setActiveStatus("all")} aria-pressed={activeStatus === "all"}>
+            All roles <span>{counts.all}</span>
           </button>
+        </div>
+        {(mode === "pipeline"
+          ? PIPELINE_STATUS_GROUPS
+          : [{ label: "Decisions", statuses: ["discovered", "shortlisted", "applied"] as const }]
+        ).map((group) => (
+          <div className={styles.statusGroup} key={group.label}>
+            <small>{group.label}</small>
+            <div>
+              {group.statuses.map((status) => (
+                <button type="button" key={status} className={activeStatus === status ? styles.activeTab : undefined} onClick={() => setActiveStatus(status)} aria-pressed={activeStatus === status}>
+                  {STATUS_LABELS[status]} <span>{counts[status]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </section>
 
@@ -404,7 +425,7 @@ export function HostedJobsWorkspace({
                 <div><span>{job.company}</span><h2>{job.title}</h2></div>
                 {job.matchScore !== null && (
                   <b className={job.matchTier === "verification" ? styles.verificationBadge : undefined}>
-                    {matchLabel(job)} · {job.matchScore}%
+                    <span>{matchLabel(job)}</span><em>{job.matchScore}%</em>
                   </b>
                 )}
               </div>

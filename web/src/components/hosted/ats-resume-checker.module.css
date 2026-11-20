@@ -9,7 +9,7 @@
 @media(max-width:680px){.scoreGrid,.keywordGrid,.parseList{grid-template-columns:1fr}.reportHead{flex-direction:column}.heading h1{font-size:2.8rem}}
 
 /* Consistent bordered workspace surfaces. */
-.heading{padding:1.2rem 1.3rem;border:1px solid color-mix(in srgb,var(--violet) 30%,var(--line));border-radius:1.35rem;background:linear-gradient(135deg,color-mix(in srgb,var(--violet) 6%,var(--panel)),var(--panel) 60%,color-mix(in srgb,var(--mint) 5%,var(--panel)));box-shadow:0 16px 42px rgba(17,24,39,.05)}
-.controls,.report{border-width:1.5px;box-shadow:0 18px 48px rgba(24,31,64,.075)}.controls{border-top:3px solid color-mix(in srgb,var(--violet) 75%,white)}.report{border-top:3px solid color-mix(in srgb,var(--mint) 75%,white)}
+.heading{padding:1.2rem 1.3rem;border:1px solid color-mix(in srgb,var(--ink) 11%,transparent);border-radius:1.35rem;background:linear-gradient(135deg,color-mix(in srgb,var(--violet) 2.5%,var(--panel)),var(--panel) 65%,color-mix(in srgb,var(--mint) 2%,var(--panel)));box-shadow:0 1px 2px rgba(24,31,64,.035),0 16px 42px rgba(24,31,64,.055)}
+.controls,.report{border:1px solid color-mix(in srgb,var(--ink) 11%,transparent);box-shadow:0 1px 2px rgba(24,31,64,.035),0 16px 42px rgba(24,31,64,.055)}
 .notice,.scoreGrid article,.parseList>div,.keywordGroup,.warning,.guardrail{border-width:1.5px}.scoreGrid article,.parseList>div,.keywordGroup{box-shadow:0 6px 18px rgba(24,31,64,.025)}
 @media(max-width:680px){.heading{padding:1rem}}

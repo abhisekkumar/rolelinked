@@ -34,3 +34,15 @@
 @media(max-width:1100px){.marketTabs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.heading{padding:1rem}.marketScope{padding:.9rem}.marketTabs{grid-template-columns:1fr}.marketTab{min-height:auto}.marketScopeIntro{align-items:flex-start}.sourceRow{align-items:flex-start}.sourceTitle{gap:.32rem}}
 @media(prefers-reduced-motion:reduce){.marketTab{transition:none}}
+
+/* Give every bordered workspace surface its own visual territory. */
+.page{min-height:100%;padding:clamp(1.35rem,2vw,2rem) clamp(1rem,2.25vw,2.5rem) 4rem}
+.grid,.packetGrid{margin-top:clamp(1.75rem,2.4vw,2.25rem);gap:clamp(1.25rem,1.8vw,1.75rem)}
+.marketScope{margin-top:clamp(1.75rem,2.4vw,2.25rem)}
+.sourceToolbar{margin-top:1.75rem}
+.sourceSummary{margin-top:1rem}
+.sourceGroups{margin-top:1.5rem;gap:1.5rem}
+.atsNetworks{margin-top:1.5rem}
+.atsNetworkGrid{gap:1rem}
+.marketTabs{gap:.9rem}
+@media(max-width:640px){.page{padding:1rem 1rem 3rem}.grid,.packetGrid{margin-top:1.5rem;gap:1.25rem}.marketScope{margin-top:1.5rem}.sourceToolbar{margin-top:1.25rem}.sourceGroups{gap:1.25rem}}

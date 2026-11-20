@@ -13,3 +13,8 @@
 .controls,.report{border:1px solid color-mix(in srgb,var(--ink) 11%,transparent);box-shadow:0 1px 2px rgba(24,31,64,.035),0 16px 42px rgba(24,31,64,.055)}
 .notice,.scoreGrid article,.parseList>div,.keywordGroup,.warning,.guardrail{border-width:1.5px}.scoreGrid article,.parseList>div,.keywordGroup{box-shadow:0 6px 18px rgba(24,31,64,.025)}
 @media(max-width:680px){.heading{padding:1rem}}
+
+/* Keep page and card outlines from visually collapsing into one frame. */
+.page{min-height:100%;padding:clamp(1.35rem,2vw,2rem) clamp(1rem,2.25vw,2.5rem) 4rem}
+.workspace{margin-top:clamp(1.75rem,2.4vw,2.25rem);gap:clamp(1.25rem,1.8vw,1.75rem)}
+@media(max-width:680px){.page{padding:1rem 1rem 3rem}.workspace{margin-top:1.5rem;gap:1.25rem}}

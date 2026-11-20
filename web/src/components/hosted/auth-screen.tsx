@@ -61,16 +61,16 @@ export function AuthScreen({ mode }: { mode: "sign-in" | "sign-up" }) {
                 appearance={authAppearance}
                 routing="path"
                 path="/sign-up"
-                signInUrl="/sign-in"
-                fallbackRedirectUrl="/onboarding"
+                signInUrl="/sign-in?redirect_url=%2Fauth%2Fcontinue"
+                fallbackRedirectUrl="/auth/continue"
               />
             ) : (
               <SignIn
                 appearance={authAppearance}
                 routing="path"
                 path="/sign-in"
-                signUpUrl="/sign-up"
-                fallbackRedirectUrl="/app/today"
+                signUpUrl="/sign-up?redirect_url=%2Fauth%2Fcontinue"
+                fallbackRedirectUrl="/auth/continue"
               />
             )
           ) : (

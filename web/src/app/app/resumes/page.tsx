@@ -10,8 +10,8 @@ export const metadata: Metadata = {
 export default async function ResumesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ returnTo?: string }>;
+  searchParams: Promise<{ returnTo?: string; mode?: string }>;
 }) {
   const params = await searchParams;
-  return <ResumeLibrary fromOnboarding={params.returnTo === "onboarding"} />;
+  return <ResumeLibrary fromOnboarding={params.returnTo === "onboarding"} editingOnboarding={params.mode === "edit"} />;
 }

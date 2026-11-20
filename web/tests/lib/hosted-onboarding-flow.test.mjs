@@ -11,7 +11,7 @@ test("onboarding saves a draft before leaving for the private resume library", (
   const onboarding = read("src/components/hosted/onboarding-experience.tsx");
   const repository = read("src/lib/hosted/db/repository.ts");
   assert.match(onboarding, /profile\?complete=\$\{complete \? "true" : "false"\}/);
-  assert.match(onboarding, /app\/resumes\?returnTo=onboarding/);
+  assert.match(onboarding, /app\/resumes\?returnTo=onboarding\$\{editing/);
   assert.match(repository, /markOnboardingComplete !== false/);
 });
 
@@ -20,11 +20,23 @@ test("the workspace reads Neon completion state instead of always showing Finish
   const shell = read("src/components/hosted/hosted-app-shell.tsx");
   assert.match(layout, /profile\.user\?\.onboardingComplete/);
   assert.match(shell, /onboardingComplete \? "Edit preferences" : "Continue setup"/);
+  assert.match(shell, /onboardingComplete \? "\/onboarding\?mode=edit" : "\/onboarding"/);
   assert.doesNotMatch(shell, />Finish setup</);
 });
 
 test("the resume library provides a clear route back to onboarding", () => {
   const library = read("src/components/hosted/resume-library.tsx");
   assert.match(library, /Return to setup/);
-  assert.match(library, /\/onboarding\?step=resumes/);
+  assert.match(library, /\/onboarding\?step=resumes\$\{editingOnboarding/);
+});
+
+test("returning accounts bypass onboarding unless they explicitly edit preferences", () => {
+  const onboardingPage = read("src/app/onboarding/page.tsx");
+  const authScreen = read("src/components/hosted/auth-screen.tsx");
+  const continuation = read("src/app/auth/continue/route.ts");
+
+  assert.match(authScreen, /fallbackRedirectUrl="\/auth\/continue"/);
+  assert.match(continuation, /hostedPostAuthDestination/);
+  assert.match(onboardingPage, /params\.mode === "edit"/);
+  assert.match(onboardingPage, /if \(onboardingComplete\) redirect\("\/app\/today"\)/);
 });

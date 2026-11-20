@@ -42,7 +42,13 @@ const PREVIEWABLE_RESUME_TYPES = new Set([
   "application/x-tex",
 ]);
 
-export function ResumeLibrary({ fromOnboarding = false }: { fromOnboarding?: boolean }) {
+export function ResumeLibrary({
+  fromOnboarding = false,
+  editingOnboarding = false,
+}: {
+  fromOnboarding?: boolean;
+  editingOnboarding?: boolean;
+}) {
   const [resumes, setResumes] = useState<ResumeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -96,7 +102,7 @@ export function ResumeLibrary({ fromOnboarding = false }: { fromOnboarding?: boo
 
   return (
     <div className={styles.page}>
-      {fromOnboarding && <section className={styles.onboardingReturn}><div><strong>Resume setup</strong><span>Upload or review your sources, then return to finish your search preferences.</span></div><Link href="/onboarding?step=resumes"><ArrowLeft /> Return to setup</Link></section>}
+      {fromOnboarding && <section className={styles.onboardingReturn}><div><strong>Resume setup</strong><span>Upload or review your sources, then return to finish your search preferences.</span></div><Link href={`/onboarding?step=resumes${editingOnboarding ? "&mode=edit" : ""}`}><ArrowLeft /> Return to setup</Link></section>}
       <header className={styles.heading}>
         <div>
           <p>Private resume library</p>

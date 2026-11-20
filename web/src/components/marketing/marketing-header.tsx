@@ -33,10 +33,10 @@ export function MarketingHeader({ signedIn = false }: { signedIn?: boolean }) {
               <UserButton />
             </div>
           ) : (
-            <Link href="/sign-in?redirect_url=%2Fapp%2Ftoday" className={styles.signInLink}>Sign in</Link>
+            <Link href="/sign-in?redirect_url=%2Fauth%2Fcontinue" className={styles.signInLink}>Sign in</Link>
           )}
           <ThemeToggle className={styles.themeToggle} />
-          <Link href={signedIn ? "/app/today" : "/sign-up?redirect_url=%2Fonboarding"} className={styles.headerCta}>
+          <Link href={signedIn ? "/app/today" : "/sign-up?redirect_url=%2Fauth%2Fcontinue"} className={styles.headerCta}>
             {signedIn ? "Open workspace" : "Start free"} <ArrowRight aria-hidden="true" />
           </Link>
         </div>

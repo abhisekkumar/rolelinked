@@ -95,7 +95,7 @@ export function HostedAppShell({
 
         <div className={styles.sidebarFooter}>
           <ThemeToggle className={styles.sidebarTheme} showLabel />
-          <Link href="/onboarding"><Settings /> {onboardingComplete ? "Edit preferences" : "Continue setup"}</Link>
+          <Link href={onboardingComplete ? "/onboarding?mode=edit" : "/onboarding"}><Settings /> {onboardingComplete ? "Edit preferences" : "Continue setup"}</Link>
           <div className={styles.accountCard}>
             {identity.mode === "clerk" ? <UserButton /> : <span>RL</span>}
             <div><strong>{identity.label}</strong><small>{identity.detail}</small></div>
@@ -114,7 +114,7 @@ export function HostedAppShell({
           <div className={styles.topbarActions}>
             <span className={styles.safeBadge}>{identity.mode === "preview" ? "Sample workspace" : "Private workspace"}</span>
             <ThemeToggle className={styles.topbarTheme} />
-            <Link href="/onboarding">{onboardingComplete ? "Edit preferences" : "Continue setup"}</Link>
+            <Link href={onboardingComplete ? "/onboarding?mode=edit" : "/onboarding"}>{onboardingComplete ? "Edit preferences" : "Continue setup"}</Link>
           </div>
         </header>
 

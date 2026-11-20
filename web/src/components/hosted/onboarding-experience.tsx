@@ -35,9 +35,11 @@ function splitList(value: string) {
 export function OnboardingExperience({
   persistent,
   initialStep = 0,
+  editing = false,
 }: {
   persistent: boolean;
   initialStep?: number;
+  editing?: boolean;
 }) {
   const [step, setStep] = useState(initialStep);
   const [selectedRoles, setSelectedRoles] = useState(() => new Set<string>());
@@ -215,7 +217,7 @@ export function OnboardingExperience({
               <h2>Give each role family the right source.</h2>
               <p className={styles.lede}>Store multiple truthful base resumes privately. RoleLinked can later emphasize supported evidence without changing employers, titles, dates, or facts.</p>
               <div className={styles.resumeList}>{resumeSuggestions.map(([name, description]) => <div key={name}><Database /><span><strong>{name}</strong><small>{description}</small></span></div>)}</div>
-              <Link className={styles.uploadPlaceholder} href="/app/resumes?returnTo=onboarding"><Database /> Open private resume library <small>Your setup progress is saved; return here when finished</small></Link>
+              <Link className={styles.uploadPlaceholder} href={`/app/resumes?returnTo=onboarding${editing ? "&mode=edit" : ""}`}><Database /> Open private resume library <small>Your setup progress is saved; return here when finished</small></Link>
             </>}
 
             {step === 2 && <>

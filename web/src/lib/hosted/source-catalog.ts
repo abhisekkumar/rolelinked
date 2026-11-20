@@ -30,6 +30,11 @@ export function atsSourceKey(board: HostedAtsBoard) {
   return `ats:${board.provider}:${board.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
 }
 
+function isIndiaOnlyCoverage(coverage?: string) {
+  if (!coverage) return false;
+  return /india/i.test(coverage) && !/(united states|global)/i.test(coverage);
+}
+
 export const PUBLIC_FEEDS: HostedPublicFeed[] = [
   { key: "feed:remotive", name: "Remotive", kind: "job-board", provider: "Public API", adapter: "manual", coverage: "Remote · global", description: "Curated remote roles across functions.", defaultEnabled: true },
   { key: "feed:remoteok", name: "RemoteOK", kind: "job-board", provider: "Public API", adapter: "manual", coverage: "Remote · global", description: "High-volume remote technology and business roles.", defaultEnabled: true },
@@ -77,6 +82,8 @@ export const HOSTED_SOURCE_CATALOG: HostedSourceCatalogItem[] = [
     provider: board.provider,
     description: `Direct public ${board.provider} career feed.`,
     coverage: board.coverage ? `${board.coverage} · company career site` : "Company career site",
-    defaultEnabled: true,
+    // RoleLinked is US-first. India-only boards remain available, but new
+    // workspaces must explicitly opt into that regional discovery market.
+    defaultEnabled: !isIndiaOnlyCoverage(board.coverage),
   })),
 ];

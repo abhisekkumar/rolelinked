@@ -68,6 +68,10 @@ test("India coverage is explicit across automated company feeds and manual porta
   const indiaPortals = MANUAL_SOURCE_DIRECTORY.filter((source) => /india/i.test(source.coverage));
   for (const required of ["Naukri", "foundit", "Instahyre", "Cutshort", "Hirist", "Indeed India"])
     assert.ok(indiaPortals.some((source) => source.name === required), `${required} manual portal is missing`);
+
+  const indiaOnlyFeeds = indiaFeeds.filter((source) => !/(united states|global)/i.test(source.coverage));
+  assert.ok(indiaOnlyFeeds.length >= 3);
+  assert.ok(indiaOnlyFeeds.every((source) => source.defaultEnabled === false), "India-only feeds should be opt-in for new US-first workspaces");
 });
 
 test("credentialed or unsupported portals are honest manual links, never fake scan toggles", () => {

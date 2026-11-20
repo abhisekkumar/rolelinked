@@ -7,3 +7,9 @@
 @media(max-width:900px){.heading{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:1fr}.uploadCard{width:100%}}
 @media(max-width:640px){.onboardingReturn{align-items:flex-start;flex-direction:column}.resumeList article{grid-template-columns:auto 1fr}.actions{grid-column:1/-1;flex-wrap:wrap}.security{width:100%}}
 @media(prefers-reduced-motion:reduce){.spin{animation:none}}
+
+/* Consistent bordered workspace surfaces. */
+.heading{padding:1.2rem 1.3rem;border:1px solid color-mix(in srgb,var(--violet) 30%,var(--line));border-radius:1.35rem;background:linear-gradient(135deg,color-mix(in srgb,var(--violet) 6%,var(--panel)),var(--panel) 60%,color-mix(in srgb,var(--mint) 5%,var(--panel)));box-shadow:0 16px 42px rgba(17,24,39,.05)}
+.uploadCard,.library{border-width:1.5px;box-shadow:0 18px 48px rgba(24,31,64,.075)}.uploadCard{border-top:3px solid color-mix(in srgb,var(--violet) 75%,white)}.library{border-top:3px solid color-mix(in srgb,var(--mint) 75%,white)}
+.resumeList{gap:.65rem;margin-top:1rem}.resumeList article{padding:.9rem;border:1.5px solid var(--line);border-radius:.85rem;background:var(--soft);box-shadow:0 6px 18px rgba(24,31,64,.025)}.resumeList article:last-child{border-bottom:1.5px solid var(--line)}
+@media(max-width:640px){.heading{padding:1rem}}

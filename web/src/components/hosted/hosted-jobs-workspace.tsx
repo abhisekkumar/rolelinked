@@ -155,6 +155,8 @@ export function HostedJobsWorkspace({
   const [viewMode, setViewMode] = useState<"cards" | "compact">(mode === "pipeline" ? "compact" : "cards");
   const [message, setMessage] = useState<{ tone: "good" | "bad"; text: string } | null>(null);
   const [recentRuns, setRecentRuns] = useState(initialRuns);
+  const latestRunIsHistorical = recentRuns.length > 0
+    && Date.now() - new Date(recentRuns[0].createdAt).getTime() > 24 * 60 * 60 * 1000;
 
   const counts = useMemo(() => {
     const next: Record<string, number> = { all: jobs.length };
@@ -325,12 +327,13 @@ export function HostedJobsWorkspace({
       {mode === "discover" && recentRuns.length > 0 && (
         <details className={styles.runHealth}>
           <summary>
-            <span><Radar /> Recent discovery</span>
+            <span><Radar /> {latestRunIsHistorical ? "Historical discovery" : "Recent discovery"}</span>
             <strong data-status={recentRuns[0].status}>{recentRuns[0].status}</strong>
-            <small>{recentRuns[0].sourcesChecked || recentRuns[0].sources.length} sources · {recentRuns[0].saved} saved</small>
+            <small>{new Date(recentRuns[0].createdAt).toLocaleDateString()} · {recentRuns[0].sourcesChecked || recentRuns[0].sources.length} sources · {recentRuns[0].saved} saved</small>
             <ChevronDown />
           </summary>
           <div className={styles.runHealthBody}>
+            {latestRunIsHistorical && <p className={styles.historyNotice}>These results predate the current deployment. Run discovery once to validate current Greenhouse and Ashby health.</p>}
             {recentRuns.slice(0, 3).map((run) => (
               <section key={run.id}>
                 <header>

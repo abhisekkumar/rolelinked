@@ -51,8 +51,10 @@ test("the public catalog does not claim a LinkedIn integration", () => {
 
 test("hosted company sources span five public ATS providers", () => {
   const ats = HOSTED_SOURCE_CATALOG.filter((source) => source.kind === "company-ats");
-  assert.ok(ats.length >= 17);
+  assert.ok(ats.length >= 60);
   assert.deepEqual(new Set(ats.map((source) => source.provider)), new Set(["greenhouse", "lever", "ashby", "workable", "icims"]));
+  assert.ok(ats.filter((source) => source.provider === "greenhouse").length >= 25, "Greenhouse network is too small");
+  assert.ok(ats.filter((source) => source.provider === "ashby").length >= 25, "Ashby network is too small");
   for (const required of ["Hugging Face", "Toggl", "Doist", "Semios", "Nortal"])
     assert.ok(ats.some((source) => source.name === required), `${required} is missing`);
 });

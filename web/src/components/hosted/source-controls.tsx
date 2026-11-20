@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BookOpen, Building2, ExternalLink, Globe2, Radar, Search, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { BookOpen, Building2, ExternalLink, Globe2, Network, Radar, Search, ShieldCheck, SlidersHorizontal } from "lucide-react";
 
 import { instrumentSerif } from "@/lib/fonts";
 import styles from "./career-operations.module.css";
@@ -26,6 +26,18 @@ type ManualSource = {
   coverage: string;
   url: string;
 };
+
+const ATS_NETWORKS: Record<string, { label: string; description: string }> = {
+  greenhouse: { label: "Greenhouse", description: "Automated public company boards across technology, data, AI, finance, and operations." },
+  ashby: { label: "Ashby", description: "Automated public feeds from high-growth AI, data-platform, infrastructure, and software companies." },
+  lever: { label: "Lever", description: "Automated public company boards with broad engineering and business-role coverage." },
+  workable: { label: "Workable", description: "Automated public company feeds exposed through Workable career sites." },
+  icims: { label: "iCIMS", description: "Automated public enterprise career feeds exposed through iCIMS." },
+};
+
+function providerLabel(provider: string) {
+  return ATS_NETWORKS[provider]?.label || provider;
+}
 
 export function SourceControls() {
   const [sources, setSources] = useState<Source[]>([]);
@@ -58,6 +70,10 @@ export function SourceControls() {
     boards: visible.filter((item) => item.kind === "job-board"),
     companies: visible.filter((item) => item.kind === "company-ats"),
   }), [visible]);
+  const atsNetworks = useMemo(() => Object.entries(ATS_NETWORKS).map(([provider, meta]) => {
+    const boards = sources.filter((source) => source.kind === "company-ats" && source.provider === provider);
+    return { provider, ...meta, boards, enabled: boards.filter((source) => source.enabled).length };
+  }).filter((network) => network.boards.length > 0), [sources]);
   const visibleManual = useMemo(() => {
     if (filter !== "all") return [];
     const needle = query.trim().toLowerCase();
@@ -101,6 +117,22 @@ export function SourceControls() {
     setBusy(new Set());
   }
 
+  async function setNetwork(provider: string, enabled: boolean) {
+    const changed = sources.filter((source) => source.kind === "company-ats" && source.provider === provider && source.enabled !== enabled);
+    if (!changed.length) return;
+    setBusy(new Set(changed.map((source) => source.key)));
+    setMessage(null);
+    const results = await Promise.allSettled(changed.map((source) => persist(source, enabled)));
+    const succeeded = new Set(changed.filter((_, index) => results[index].status === "fulfilled").map((source) => source.key));
+    setSources((current) => current.map((source) => succeeded.has(source.key) ? { ...source, enabled } : source));
+    const failures = changed.length - succeeded.size;
+    const label = providerLabel(provider);
+    setMessage(failures
+      ? `${succeeded.size} ${label} boards updated; ${failures} could not be changed.`
+      : `${label} automated scanning ${enabled ? "enabled" : "paused"} for ${succeeded.size} company boards.`);
+    setBusy(new Set());
+  }
+
   const renderGroup = (title: string, lead: string, items: Source[], icon: React.ReactNode) => (
     <section className={styles.card}>
       <div className={styles.libraryHead}><div><small>{lead}</small><h2>{title}</h2><p>{items.filter((item) => item.enabled).length} enabled · {items.length} shown</p></div>{icon}</div>
@@ -109,7 +141,7 @@ export function SourceControls() {
           <div className={styles.sourceCopy}>
             <div className={styles.sourceTitle}><strong>{source.name}</strong>{!source.defaultEnabled && <span>Optional</span>}</div>
             <p>{source.description}</p>
-            <small>{source.provider} · {source.coverage}</small>
+            <small>{providerLabel(source.provider)} · {source.coverage}</small>
           </div>
           <button type="button" className={`${styles.switch} ${source.enabled ? styles.switchOn : ""}`} onClick={() => toggle(source)} disabled={busy.has(source.key)} aria-label={`${source.enabled ? "Disable" : "Enable"} ${source.name}`} aria-pressed={source.enabled}><span /></button>
         </div>
@@ -142,9 +174,19 @@ export function SourceControls() {
       <div className={styles.sourceFilters}><SlidersHorizontal />{(["all", "enabled", "paused"] as const).map((value) => <button type="button" className={filter === value ? styles.activeFilter : ""} onClick={() => setFilter(value)} key={value}>{value === "all" ? "All" : value === "enabled" ? "Enabled" : "Paused"}</button>)}</div>
       <div className={styles.sourceBulk}><button type="button" onClick={() => setVisible(true)}>Enable shown</button><button type="button" onClick={() => setVisible(false)}>Pause shown</button></div>
     </section>
-    <div className={styles.sourceSummary}><strong>{enabledCount} of {sources.length} automated sources enabled</strong><span>{manualSources.length} additional portals are listed as manual-only so the product never implies unsupported scraping.</span></div>
-    <div className={styles.sourceNetworkSummary}><strong>Direct ATS networks</strong><span>Greenhouse · Lever · Ashby · Workable · iCIMS</span><small>Search “Ashby” or “India” above to isolate those feeds.</small></div>
-    <div className={styles.sourceGroups}>{renderGroup("Public job boards", "Broad and specialty feeds", groups.boards, <Globe2 />)}{renderGroup("Company career sites", "Direct public ATS feeds", groups.companies, <Building2 />)}{filter === "all" && renderManualGroup()}</div>
+    <div className={styles.sourceSummary}><strong>{enabledCount} of {sources.length} automated sources enabled</strong><span>Greenhouse and Ashby are automated public ATS feeds. Glassdoor and credentialed marketplaces remain manual-only.</span></div>
+    <section className={styles.atsNetworks}>
+      <div className={styles.libraryHead}><div><small>Automated public APIs and feeds</small><h2>ATS networks</h2><p>Enable a network to scan every listed company board in that network.</p></div><Network /></div>
+      <div className={styles.atsNetworkGrid}>{atsNetworks.map((network) => {
+        const allEnabled = network.enabled === network.boards.length;
+        const networkBusy = network.boards.some((source) => busy.has(source.key));
+        return <div className={styles.atsNetworkCard} key={network.provider}>
+          <div><span>Automated</span><strong>{network.label}</strong><p>{network.description}</p><small>{network.enabled} of {network.boards.length} company boards enabled</small></div>
+          <button type="button" className={`${styles.switch} ${allEnabled ? styles.switchOn : ""}`} onClick={() => setNetwork(network.provider, !allEnabled)} disabled={networkBusy} aria-label={`${allEnabled ? "Pause" : "Enable"} ${network.label} automated scanning`} aria-pressed={allEnabled}><span /></button>
+        </div>;
+      })}</div>
+    </section>
+    <div className={styles.sourceGroups}>{renderGroup("Public job boards", "Broad and specialty feeds", groups.boards, <Globe2 />)}{renderGroup("Company career sites", "Boards scanned through the ATS networks above", groups.companies, <Building2 />)}{filter === "all" && renderManualGroup()}</div>
     <div className={styles.safety} style={{ marginTop: "1rem" }}><Radar /><span><strong>Preferences still decide what survives</strong>Role, location, compensation, and sponsorship filters apply after source collection.</span></div>
   </div>;
 }

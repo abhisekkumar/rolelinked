@@ -37,6 +37,13 @@ test("ATS analysis reports observable coverage without changing claims", () => {
   assert.equal(result.parseability.checks.every((check) => check.passed), true);
   assert.match(result.guardrail, /only when it truthfully describes/i);
   assert.ok(result.compatibilityPct > 0 && result.compatibilityPct <= 100);
+  assert.deepEqual(result.parserVisibility.contact.emails, ["jane@example.com"]);
+  assert.ok(result.parserVisibility.titles.some((line) => /Senior Data Engineer/.test(line)));
+  assert.equal(result.layoutDiagnostics.find((item) => item.key === "image-only")?.state, "pass");
+  assert.deepEqual(result.matchDiagnostics.genuineGaps, ["Databricks"]);
+  assert.match(result.matchDiagnostics.limitation, /not proof of a skill gap/i);
+  assert.ok(result.methodology.some((item) => /weighted heuristic/i.test(item)));
+  assert.ok(result.limitations.some((item) => /not a pass probability/i.test(item)));
 });
 
 test("ATS analysis labels inconclusive extraction instead of claiming a clean match", () => {

@@ -20,6 +20,12 @@ type Analysis = {
   keywordCoverage: { total: number; presentCount: number; coveragePct: number; present: string[]; thin: string[]; missing: string[] };
   titleAlignment: { total: number; present: string[]; missing: string[]; percentage: number };
   parseability: { percentage: number; checks: CheckItem[] };
+  parserVisibility: { contact: { emails: string[]; phones: string[] }; employers: string[]; titles: string[]; dates: string[]; education: string[]; certifications: string[]; skills: string[]; headings: string[]; readingOrder: string[] };
+  layoutDiagnostics: { key: string; label: string; state: "pass" | "warn" | "unknown"; detail: string }[];
+  matchDiagnostics: { required: { present: string[]; missing: string[] }; preferred: { present: string[]; missing: string[]; limitation: string }; exactMatches: string[]; disclosedSynonymMatches: { requested: string; matched: string }[]; supportedButMissing: string[]; genuineGaps: string[]; warnings: { key: string; detail: string }[]; limitation: string };
+  sourceComparison: { state: string; detail: string };
+  methodology: string[];
+  limitations: string[];
   lowConfidenceReason: string | null;
   guardrail: string;
 };
@@ -103,11 +109,22 @@ export function AtsResumeChecker() {
           </div>
           {result.analysis.lowConfidenceReason && <div className={styles.warning}><AlertTriangle /><p><strong>Limited job-text confidence</strong>{result.analysis.lowConfidenceReason}</p></div>}
           <div className={styles.parseList}>{result.analysis.parseability.checks.map((check) => <div key={check.key}>{check.passed ? <Check className={styles.pass} /> : <X className={styles.fail} />}<p><strong>{check.label}</strong><span>{check.detail}</span></p></div>)}</div>
+          <section className={styles.diagnosticSection}><div className={styles.sectionHead}><div><small>Parser visibility</small><h3>What the text parser could actually observe</h3></div><span>Deterministic extraction</span></div><div className={styles.visibilityGrid}>
+            <article><strong>Contact</strong><p>{[...result.analysis.parserVisibility.contact.emails, ...result.analysis.parserVisibility.contact.phones].join(" · ") || "Not detected"}</p></article>
+            <article><strong>Employers</strong><p>{result.analysis.parserVisibility.employers.join(" · ") || "No employer-like lines detected"}</p></article>
+            <article><strong>Titles</strong><p>{result.analysis.parserVisibility.titles.join(" · ") || "No title-like lines detected"}</p></article>
+            <article><strong>Dates</strong><p>{result.analysis.parserVisibility.dates.join(" · ") || "Not detected"}</p></article>
+            <article><strong>Education & certifications</strong><p>{[...result.analysis.parserVisibility.education, ...result.analysis.parserVisibility.certifications].join(" · ") || "Not detected"}</p></article>
+            <article><strong>Headings & skills</strong><p>{[...result.analysis.parserVisibility.headings, ...result.analysis.parserVisibility.skills].join(" · ") || "Not detected"}</p></article>
+          </div><details><summary>Inspect extracted reading order</summary><ol>{result.analysis.parserVisibility.readingOrder.map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details></section>
+          <section className={styles.diagnosticSection}><div className={styles.sectionHead}><div><small>Layout diagnostics</small><h3>Formatting risks and observability limits</h3></div><span>Not vendor-specific</span></div><div className={styles.layoutGrid}>{result.analysis.layoutDiagnostics.map((item) => <article data-state={item.state} key={item.key}>{item.state === "pass" ? <Check /> : <AlertTriangle />}<div><strong>{item.label}</strong><p>{item.detail}</p></div></article>)}</div></section>
           <div className={styles.keywordGrid}>
             <KeywordGroup title="Found in resume" values={result.analysis.keywordCoverage.present} tone="good" />
             <KeywordGroup title="Mentioned once" values={result.analysis.keywordCoverage.thin} tone="warn" />
             <KeywordGroup title="Not found" values={result.analysis.keywordCoverage.missing} tone="bad" />
           </div>
+          <section className={styles.diagnosticSection}><div className={styles.sectionHead}><div><small>Match diagnostics</small><h3>Exact terms, disclosed synonyms, and honest gaps</h3></div><span>No automatic injection</span></div><div className={styles.matchRows}><p><strong>Exact matches</strong>{result.analysis.matchDiagnostics.exactMatches.join(", ") || "None"}</p><p><strong>Disclosed synonym matches</strong>{result.analysis.matchDiagnostics.disclosedSynonymMatches.map((item) => `${item.requested} ↔ ${item.matched}`).join(", ") || "None"}</p><p><strong>Not found in this resume</strong>{result.analysis.matchDiagnostics.genuineGaps.join(", ") || "None"}</p>{result.analysis.matchDiagnostics.warnings.map((warning) => <p key={warning.key}><strong>Warning</strong>{warning.detail}</p>)}<small>{result.analysis.matchDiagnostics.limitation}</small><small>{result.analysis.matchDiagnostics.preferred.limitation}</small></div></section>
+          <section className={styles.methodology}><h3>Methodology and limitations</h3>{result.analysis.methodology.map((item) => <p key={item}><Check />{item}</p>)}{result.analysis.limitations.map((item) => <p key={item}><AlertTriangle />{item}</p>)}<p><AlertTriangle />{result.analysis.sourceComparison.detail}</p></section>
           <div className={styles.guardrail}><ShieldCheck /><p><strong>Truthfulness guardrail</strong>{result.analysis.guardrail}</p></div>
           <p className={styles.privacy}>{result.privacy} Report {result.report.id.slice(0, 8)} is available to the application packet.</p>
         </>}

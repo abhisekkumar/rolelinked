@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Check, Clipboard, ExternalLink, FileCheck2, FileScan, LockKeyhole, PackageCheck, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { Check, Clipboard, ExternalLink, FileCheck2, FileScan, LockKeyhole, PackageCheck, Plus, ShieldCheck, Sparkles, Trash2, X } from "lucide-react";
 
 import { instrumentSerif } from "@/lib/fonts";
 import { applicationPacketReadiness, type ApplicationAnswerDraft } from "@/lib/hosted/application-packet-readiness";
@@ -14,6 +14,8 @@ type Evidence = { id: string; title: string; statement: string; category: string
 type ArtifactOption = { artifact: { id: string; title: string; kind: "resume" | "cover-letter"; roleFamily: string }; latestVersion: { id: string; version: number; sourceJobId: string | null } };
 type AtsReport = { id: string; jobId: string; resumeId: string; createdAt: string; analysis: { compatibilityPct?: number } };
 type Packet = { packet: { id: string; jobId: string; resumeId: string | null; resumeArtifactVersionId: string | null; coverLetterVersionId: string | null; atsReportId: string | null; approvalFingerprint: string | null; status: string; content: Record<string, unknown>; reviewNotes: string | null; updatedAt: string }; job: Job; resumeName: string | null; evidenceIds: string[] };
+type DraftKind = "resume-summary" | "cover-letter" | "screening-answer";
+type DraftSuggestion = { kind: DraftKind; answerIndex?: number; text: string; claims: { text: string; evidenceIds: string[] }[]; citations: { evidenceId: string; title: string; sourceLabel: string }[]; unknowns: string[] };
 const EMPTY_ANSWER = { question: "", answer: "" };
 const QUEUE_STATES = ["all", "draft", "review", "approved", "archived"] as const;
 
@@ -40,6 +42,8 @@ export function ApplicationPackets() {
   const [answerRows, setAnswerRows] = useState<ApplicationAnswerDraft[]>([{ ...EMPTY_ANSWER }]);
   const [queueState, setQueueState] = useState<(typeof QUEUE_STATES)[number]>("all");
   const [busy, setBusy] = useState(false);
+  const [drafting, setDrafting] = useState<DraftKind | null>(null);
+  const [draftSuggestion, setDraftSuggestion] = useState<DraftSuggestion | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -127,6 +131,38 @@ export function ApplicationPackets() {
     }
   }
 
+  async function draftFromEvidence(kind: DraftKind, answerIndex?: number) {
+    if (!selectedJobId || !selectedEvidenceIds.length) {
+      setMessage("Choose a role and at least one verified claim before drafting.");
+      return;
+    }
+    setDrafting(kind);
+    setDraftSuggestion(null);
+    setMessage(null);
+    const response = await fetch("/api/hosted/drafting", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jobId: selectedJobId, evidenceIds: selectedEvidenceIds, kind }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (response.ok) {
+      setDraftSuggestion({ ...body.draft, answerIndex });
+      setMessage("A source-grounded suggestion is ready. Compare it with your draft, then explicitly accept or dismiss it.");
+    } else {
+      setMessage(body.error || "The grounded draft could not be created.");
+    }
+    setDrafting(null);
+  }
+
+  function acceptDraftSuggestion() {
+    if (!draftSuggestion) return;
+    if (draftSuggestion.kind === "resume-summary") setProfessionalSummary(draftSuggestion.text);
+    else if (draftSuggestion.kind === "cover-letter") setCoverNote(draftSuggestion.text);
+    else if (typeof draftSuggestion.answerIndex === "number") updateAnswer(draftSuggestion.answerIndex, "answer", draftSuggestion.text);
+    setDraftSuggestion(null);
+    setMessage("Suggestion accepted into this unsaved packet draft. Review and save when ready.");
+  }
+
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -188,9 +224,19 @@ export function ApplicationPackets() {
         </fieldset>
 
         <div className={styles.packetSectionHead}><span>03</span><div><small>Draft</small><h3>Write only what the evidence supports</h3></div></div>
+        <div className={styles.groundedActions}>
+          <button className={styles.secondaryButton} type="button" disabled={Boolean(drafting) || !selectedEvidenceIds.length} onClick={() => draftFromEvidence("resume-summary")}><Sparkles />{drafting === "resume-summary" ? "Drafting…" : "Suggest summary from evidence"}</button>
+          <button className={styles.secondaryButton} type="button" disabled={Boolean(drafting) || !selectedEvidenceIds.length} onClick={() => draftFromEvidence("cover-letter")}><Sparkles />{drafting === "cover-letter" ? "Drafting…" : "Suggest cover note from evidence"}</button>
+        </div>
+        {draftSuggestion && <section className={styles.draftReview} aria-live="polite">
+          <div className={styles.draftReviewHead}><div><small>Review required</small><strong>Source-grounded suggestion</strong></div><button type="button" onClick={() => setDraftSuggestion(null)} aria-label="Dismiss suggestion"><X /></button></div>
+          <div className={styles.draftCompare}><div><small>Current draft</small><p>{draftSuggestion.kind === "resume-summary" ? professionalSummary || "Empty" : draftSuggestion.kind === "cover-letter" ? coverNote || "Empty" : answerRows[draftSuggestion.answerIndex || 0]?.answer || "Empty"}</p></div><div><small>Suggested replacement</small><p>{draftSuggestion.text}</p></div></div>
+          <div className={styles.citationList}><strong>Evidence attached to every claim</strong>{draftSuggestion.claims.map((claim, index) => <p key={`${claim.text}-${index}`}>{claim.text} <span>{claim.evidenceIds.map((id) => draftSuggestion.citations.find((citation) => citation.evidenceId === id)?.title || id).join(", ")}</span></p>)}{draftSuggestion.unknowns.map((unknown) => <p key={unknown}><em>Unknown:</em> {unknown}</p>)}</div>
+          <div className={styles.draftReviewActions}><button type="button" onClick={acceptDraftSuggestion}><Check /> Accept replacement</button><button className={styles.secondaryButton} type="button" onClick={() => setDraftSuggestion(null)}><X /> Keep current draft</button></div>
+        </section>}
         <label>Supported professional summary<div className={styles.fieldWithAction}><textarea value={professionalSummary} onChange={(event) => setProfessionalSummary(event.target.value)} placeholder="Write only claims supported by the selected resume." /><button type="button" onClick={() => copy(professionalSummary, "Summary")} aria-label="Copy professional summary"><Clipboard /></button></div></label>
         <label>Cover note<div className={styles.fieldWithAction}><textarea value={coverNote} onChange={(event) => setCoverNote(event.target.value)} placeholder="Explain the truthful fit without adding qualifications." /><button type="button" onClick={() => copy(coverNote, "Cover note")} aria-label="Copy cover note"><Clipboard /></button></div></label>
-        <fieldset className={styles.answerSet}><legend>Application answers</legend><p>Paste the exact question. Leave the answer blank when your approved sources do not support it.</p>{answerRows.map((answer, index) => <div className={styles.answerRow} key={index}><div className={styles.answerHead}><strong>Answer {index + 1}</strong>{answerRows.length > 1 && <button type="button" onClick={() => setAnswerRows((current) => current.filter((_, answerIndex) => answerIndex !== index))}><Trash2 /> Remove</button>}</div><label>Question<input value={answer.question} onChange={(event) => updateAnswer(index, "question", event.target.value)} placeholder="Why are you interested in this role?" /></label><label>Truthful answer<div className={styles.fieldWithAction}><textarea value={answer.answer} onChange={(event) => updateAnswer(index, "answer", event.target.value)} placeholder="Use only source-backed qualifications." /><button type="button" onClick={() => copy(answer.answer, `Answer ${index + 1}`)} aria-label={`Copy answer ${index + 1}`}><Clipboard /></button></div></label></div>)}<button className={styles.secondaryButton} type="button" onClick={() => setAnswerRows((current) => [...current, { ...EMPTY_ANSWER }])}><Plus /> Add another question</button></fieldset>
+        <fieldset className={styles.answerSet}><legend>Application answers</legend><p>Paste the exact question. Leave the answer blank when your approved sources do not support it.</p>{answerRows.map((answer, index) => <div className={styles.answerRow} key={index}><div className={styles.answerHead}><strong>Answer {index + 1}</strong><div><button type="button" disabled={Boolean(drafting) || !selectedEvidenceIds.length} onClick={() => draftFromEvidence("screening-answer", index)}><Sparkles /> Suggest from evidence</button>{answerRows.length > 1 && <button type="button" onClick={() => setAnswerRows((current) => current.filter((_, answerIndex) => answerIndex !== index))}><Trash2 /> Remove</button>}</div></div><label>Question<input value={answer.question} onChange={(event) => updateAnswer(index, "question", event.target.value)} placeholder="Why are you interested in this role?" /></label><label>Truthful answer<div className={styles.fieldWithAction}><textarea value={answer.answer} onChange={(event) => updateAnswer(index, "answer", event.target.value)} placeholder="Use only source-backed qualifications." /><button type="button" onClick={() => copy(answer.answer, `Answer ${index + 1}`)} aria-label={`Copy answer ${index + 1}`}><Clipboard /></button></div></label></div>)}<button className={styles.secondaryButton} type="button" onClick={() => setAnswerRows((current) => [...current, { ...EMPTY_ANSWER }])}><Plus /> Add another question</button></fieldset>
 
         <div className={styles.packetSectionHead}><span>04</span><div><small>Review</small><h3>Record the internal decision</h3></div></div>
         <div className={styles.completeness}>{checks.map((item) => <span className={item.done ? styles.complete : ""} key={item.label}>{item.done ? <Check /> : <i />}{item.label}</span>)}</div>

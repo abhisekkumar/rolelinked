@@ -46,3 +46,12 @@
 .atsNetworkGrid{gap:1rem}
 .marketTabs{gap:.9rem}
 @media(max-width:640px){.page{padding:1rem 1rem 3rem}.grid,.packetGrid{margin-top:1.5rem;gap:1.25rem}.marketScope{margin-top:1.5rem}.sourceToolbar{margin-top:1.25rem}.sourceGroups{gap:1.25rem}}
+
+/* Source-grounded drafting is always review-first: suggestions occupy their own bordered surface. */
+.groundedActions{display:flex;gap:.55rem;flex-wrap:wrap}
+.draftReview{padding:1rem;display:grid;gap:.85rem;border:1.5px solid color-mix(in srgb,var(--violet) 38%,var(--line));border-radius:1rem;background:color-mix(in srgb,var(--violet) 5%,var(--panel))}
+.draftReviewHead{display:flex;align-items:center;justify-content:space-between;gap:1rem}.draftReviewHead small{display:block;color:var(--violet);font-size:.58rem;font-weight:900;letter-spacing:.11em;text-transform:uppercase}.draftReviewHead strong{display:block;margin-top:.15rem;font-size:.78rem}.draftReviewHead>button{width:2rem;height:2rem;padding:0;color:var(--muted);border:1px solid var(--line);background:var(--panel)}.draftReviewHead svg{width:.85rem}
+.draftCompare{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}.draftCompare>div{padding:.75rem;border:1px solid var(--line);border-radius:.75rem;background:var(--panel)}.draftCompare small{color:var(--muted);font-size:.58rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.draftCompare p{margin-top:.4rem;white-space:pre-wrap;color:var(--ink);font-size:.68rem;line-height:1.55}
+.citationList{display:grid;gap:.35rem}.citationList>strong{font-size:.66rem}.citationList p{color:var(--muted);font-size:.64rem;line-height:1.45}.citationList span{color:var(--mint);font-weight:800}.citationList em{color:var(--amber);font-style:normal;font-weight:800}.draftReviewActions{display:flex;gap:.5rem;flex-wrap:wrap}
+.answerHead{gap:.75rem}.answerHead>div{display:flex;align-items:center;gap:.25rem;flex-wrap:wrap;justify-content:flex-end}.answerHead>div button{color:var(--violet)}.answerHead>div button:last-child{color:#bd525d}
+@media(max-width:640px){.draftCompare{grid-template-columns:1fr}}

@@ -7,6 +7,7 @@ import test from "node:test";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const artifacts = readFileSync(path.join(here, "../../drizzle/0008_brave_spitfire.sql"), "utf8");
 const packets = readFileSync(path.join(here, "../../drizzle/0009_yellow_reavers.sql"), "utf8");
+const modelUsage = readFileSync(path.join(here, "../../drizzle/0010_superb_nebula.sql"), "utf8");
 
 for (const table of ["hosted_artifacts", "hosted_artifact_versions"]) {
   test(`${table} has forced tenant row-level security`, () => {
@@ -20,6 +21,12 @@ test("ATS reports have forced tenant isolation", () => {
   assert.match(packets, /ALTER TABLE "hosted_ats_reports" ENABLE ROW LEVEL SECURITY/);
   assert.match(packets, /ALTER TABLE "hosted_ats_reports" FORCE ROW LEVEL SECURITY/);
   assert.match(packets, /CREATE POLICY "hosted_ats_reports_tenant_isolation"/);
+});
+
+test("model usage accounting has forced tenant isolation", () => {
+  assert.match(modelUsage, /ALTER TABLE "hosted_model_usage" ENABLE ROW LEVEL SECURITY/);
+  assert.match(modelUsage, /ALTER TABLE "hosted_model_usage" FORCE ROW LEVEL SECURITY/);
+  assert.match(modelUsage, /CREATE POLICY "hosted_model_usage_tenant_isolation"/);
 });
 
 test("packets pin tenant-owned artifact versions and ATS reports", () => {

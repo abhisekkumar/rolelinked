@@ -20,6 +20,7 @@ import {
   hostedEvidenceUsages,
   hostedJobs,
   hostedJobStatusEvents,
+  hostedModelUsage,
   hostedSourcePreferences,
   resumeVersions,
   resumes,
@@ -1122,6 +1123,54 @@ export async function listHostedAtsReports(ownerIdValue: string, jobId?: string)
   return db.transaction(async (tx) => {
     await setTenant(tx, ownerId);
     return tx.select().from(hostedAtsReports).where(and(eq(hostedAtsReports.ownerId, ownerId), jobId ? eq(hostedAtsReports.jobId, jobId) : sql`true`)).orderBy(desc(hostedAtsReports.createdAt));
+  });
+}
+
+export async function getVerifiedHostedEvidence(ownerIdValue: string, evidenceIdsValue: string[]) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const evidenceIds = [...new Set(evidenceIdsValue)];
+  if (!evidenceIds.length) return [];
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const evidence = await tx.select().from(hostedEvidenceItems).where(and(
+      eq(hostedEvidenceItems.ownerId, ownerId),
+      inArray(hostedEvidenceItems.id, evidenceIds),
+    ));
+    if (evidence.length !== evidenceIds.length || evidence.some((item) => !["verified", "corrected"].includes(item.verificationState))) {
+      throw new Error("Drafting can only use verified or corrected evidence from this workspace.");
+    }
+    return evidenceIds.map((id) => evidence.find((item) => item.id === id)!);
+  });
+}
+
+export async function countHostedModelUsageSince(ownerIdValue: string, since: Date) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [row] = await tx.select({ count: sql<number>`count(*)::int` }).from(hostedModelUsage).where(and(
+      eq(hostedModelUsage.ownerId, ownerId),
+      sql`${hostedModelUsage.createdAt} >= ${since}`,
+    ));
+    return row?.count || 0;
+  });
+}
+
+export async function recordHostedModelUsage(ownerIdValue: string, input: {
+  provider: string;
+  model: string;
+  requestKind: string;
+  inputCharacters: number;
+  outputCharacters: number;
+  costMicros?: number;
+}) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [usage] = await tx.insert(hostedModelUsage).values({ ownerId, ...input, costMicros: input.costMicros || 0 }).returning();
+    return usage;
   });
 }
 

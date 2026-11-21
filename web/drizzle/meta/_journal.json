@@ -71,6 +71,13 @@
       "when": 1795233306919,
       "tag": "0009_yellow_reavers",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795233685616,
+      "tag": "0010_superb_nebula",
+      "breakpoints": true
     }
   ]
 }

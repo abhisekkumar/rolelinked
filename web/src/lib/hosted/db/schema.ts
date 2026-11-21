@@ -428,6 +428,26 @@ export const hostedAtsReports = pgTable(
   ],
 );
 
+export const hostedModelUsage = pgTable(
+  "hosted_model_usage",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    requestKind: text("request_kind").notNull(),
+    inputCharacters: integer("input_characters").default(0).notNull(),
+    outputCharacters: integer("output_characters").default(0).notNull(),
+    costMicros: integer("cost_micros").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("hosted_model_usage_owner_created_idx").on(table.ownerId, table.createdAt),
+  ],
+);
+
 export const hostedApplicationPackets = pgTable(
   "hosted_application_packets",
   {

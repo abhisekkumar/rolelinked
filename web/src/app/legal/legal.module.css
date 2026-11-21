@@ -102,16 +102,14 @@
   font-size: 0.82rem;
 }
 
-.jumpLinks,
-.linkGrid {
+.jumpLinks {
   display: flex;
   flex-wrap: wrap;
   gap: 0.65rem;
   margin-top: 2rem;
 }
 
-.jumpLinks a,
-.linkGrid a {
+.jumpLinks a {
   padding: 0.65rem 0.85rem;
   border: 1px solid rgba(99, 75, 213, 0.18);
   border-radius: 999px;
@@ -123,8 +121,7 @@
   transition: transform 180ms ease, background 180ms ease;
 }
 
-.jumpLinks a:hover,
-.linkGrid a:hover {
+.jumpLinks a:hover {
   transform: translateY(-2px);
   background: color-mix(in srgb, var(--legal-soft) 70%, var(--legal-surface));
 }
@@ -189,8 +186,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .jumpLinks a,
-  .linkGrid a {
+  .jumpLinks a {
     transition: none;
   }
 }

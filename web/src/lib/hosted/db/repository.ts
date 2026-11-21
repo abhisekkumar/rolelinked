@@ -7,6 +7,8 @@ import { getHostedDatabase } from "./client";
 import {
   candidateProfiles,
   documents,
+  hostedArtifacts,
+  hostedArtifactVersions,
   hostedApplicationPacketEvents,
   hostedApplicationPackets,
   hostedAutomationSchedules,
@@ -31,6 +33,7 @@ import {
   HOSTED_DISCOVERY_RUNNING_TIMEOUT_MESSAGE,
   hostedDiscoveryStaleCutoffs,
 } from "@/lib/hosted/discovery-run-health.mjs";
+import { artifactContentSha256, artifactEvidenceIds, artifactVersionDiff } from "@/lib/hosted/artifact-version-core.mjs";
 
 export type SearchProfileInput = {
   targetRoles: string[];
@@ -429,6 +432,208 @@ export async function deleteHostedEvidence(ownerIdValue: string, evidenceId: str
       .delete(hostedEvidenceItems)
       .where(and(eq(hostedEvidenceItems.ownerId, ownerId), eq(hostedEvidenceItems.id, evidenceId)))
       .returning({ id: hostedEvidenceItems.id });
+  });
+}
+
+export type HostedArtifactVersionInput = {
+  artifactId?: string | null;
+  kind: "resume" | "cover-letter";
+  title: string;
+  roleFamily?: string;
+  sourceJobId?: string | null;
+  evidenceIds: string[];
+  changeSummary?: string;
+  restoredFromVersionId?: string | null;
+  content: Record<string, unknown>;
+};
+
+export async function listHostedArtifacts(
+  ownerIdValue: string,
+  options: { kind?: "resume" | "cover-letter" } = {},
+) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const artifactRows = await tx
+      .select()
+      .from(hostedArtifacts)
+      .where(and(
+        eq(hostedArtifacts.ownerId, ownerId),
+        options.kind ? eq(hostedArtifacts.kind, options.kind) : sql`true`,
+      ))
+      .orderBy(desc(hostedArtifacts.updatedAt));
+    if (!artifactRows.length) return [];
+    const versionRows = await tx
+      .select()
+      .from(hostedArtifactVersions)
+      .where(and(
+        eq(hostedArtifactVersions.ownerId, ownerId),
+        inArray(hostedArtifactVersions.artifactId, artifactRows.map((item) => item.id)),
+      ))
+      .orderBy(desc(hostedArtifactVersions.version));
+    return artifactRows.map((artifact) => {
+      const versions = versionRows.filter((version) => version.artifactId === artifact.id);
+      return { artifact, latestVersion: versions[0] || null, versionCount: versions.length };
+    });
+  });
+}
+
+export async function getHostedArtifact(ownerIdValue: string, artifactId: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [artifact] = await tx
+      .select()
+      .from(hostedArtifacts)
+      .where(and(eq(hostedArtifacts.ownerId, ownerId), eq(hostedArtifacts.id, artifactId)))
+      .limit(1);
+    if (!artifact) return null;
+    const versions = await tx
+      .select()
+      .from(hostedArtifactVersions)
+      .where(and(
+        eq(hostedArtifactVersions.ownerId, ownerId),
+        eq(hostedArtifactVersions.artifactId, artifactId),
+      ))
+      .orderBy(desc(hostedArtifactVersions.version));
+    return { artifact, latestVersion: versions[0] || null, versions };
+  });
+}
+
+export async function saveHostedArtifactVersion(
+  ownerIdValue: string,
+  input: HostedArtifactVersionInput,
+) {
+  const ownerId = requireTenantId(ownerIdValue);
+  await ensureHostedUser(ownerId);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const selectedEvidenceIds = [...new Set(input.evidenceIds)];
+    if (!selectedEvidenceIds.length) {
+      throw new Error("Select at least one verified evidence item for this artifact.");
+    }
+    const usedEvidenceIds = artifactEvidenceIds(input.content);
+    if (usedEvidenceIds.some((id) => !selectedEvidenceIds.includes(id))) {
+      throw new Error("Every artifact claim must be pinned to selected evidence.");
+    }
+    const evidence = await tx
+      .select({
+        id: hostedEvidenceItems.id,
+        title: hostedEvidenceItems.title,
+        verificationState: hostedEvidenceItems.verificationState,
+      })
+      .from(hostedEvidenceItems)
+      .where(and(
+        eq(hostedEvidenceItems.ownerId, ownerId),
+        inArray(hostedEvidenceItems.id, selectedEvidenceIds),
+      ));
+    if (evidence.length !== selectedEvidenceIds.length) {
+      throw new Error("One or more artifact sources were not found in this workspace.");
+    }
+    if (evidence.some((item) => !["verified", "corrected"].includes(item.verificationState))) {
+      throw new Error("Artifacts can only use verified or corrected evidence.");
+    }
+    if (input.sourceJobId) {
+      const [job] = await tx
+        .select({ id: hostedJobs.id })
+        .from(hostedJobs)
+        .where(and(eq(hostedJobs.ownerId, ownerId), eq(hostedJobs.id, input.sourceJobId)))
+        .limit(1);
+      if (!job) throw new Error("The selected job source was not found in this workspace.");
+    }
+
+    let artifact;
+    if (input.artifactId) {
+      [artifact] = await tx
+        .select()
+        .from(hostedArtifacts)
+        .where(and(eq(hostedArtifacts.ownerId, ownerId), eq(hostedArtifacts.id, input.artifactId)))
+        .limit(1);
+      if (!artifact || artifact.kind !== input.kind) throw new Error("Artifact not found in this workspace.");
+      [artifact] = await tx
+        .update(hostedArtifacts)
+        .set({ title: input.title, roleFamily: input.roleFamily || "", updatedAt: new Date() })
+        .where(and(eq(hostedArtifacts.ownerId, ownerId), eq(hostedArtifacts.id, input.artifactId)))
+        .returning();
+    } else {
+      [artifact] = await tx
+        .insert(hostedArtifacts)
+        .values({
+          ownerId,
+          kind: input.kind,
+          title: input.title,
+          roleFamily: input.roleFamily || "",
+        })
+        .returning();
+    }
+
+    const previousRows = await tx
+      .select()
+      .from(hostedArtifactVersions)
+      .where(and(
+        eq(hostedArtifactVersions.ownerId, ownerId),
+        eq(hostedArtifactVersions.artifactId, artifact.id),
+      ))
+      .orderBy(desc(hostedArtifactVersions.version))
+      .limit(1);
+    const previous = previousRows[0] || null;
+    if (input.restoredFromVersionId) {
+      const [restored] = await tx
+        .select({ id: hostedArtifactVersions.id })
+        .from(hostedArtifactVersions)
+        .where(and(
+          eq(hostedArtifactVersions.ownerId, ownerId),
+          eq(hostedArtifactVersions.artifactId, artifact.id),
+          eq(hostedArtifactVersions.id, input.restoredFromVersionId),
+        ))
+        .limit(1);
+      if (!restored) throw new Error("The restore source is not part of this artifact.");
+    }
+    const [version] = await tx
+      .insert(hostedArtifactVersions)
+      .values({
+        ownerId,
+        artifactId: artifact.id,
+        version: (previous?.version || 0) + 1,
+        sourceJobId: input.sourceJobId || null,
+        content: input.content,
+        evidenceIds: selectedEvidenceIds,
+        changeSummary: input.changeSummary || "",
+        restoredFromVersionId: input.restoredFromVersionId || null,
+        contentSha256: artifactContentSha256(input.content),
+      })
+      .returning();
+
+    if (selectedEvidenceIds.length) {
+      await tx.insert(hostedEvidenceUsages).values(selectedEvidenceIds.map((evidenceId) => ({
+        ownerId,
+        evidenceId,
+        surfaceType: `${input.kind}-version`,
+        surfaceId: version.id,
+        surfaceLabel: `${artifact.title} · v${version.version}`,
+      })));
+    }
+    return {
+      artifact,
+      version,
+      diff: artifactVersionDiff(previous?.content || { blocks: [] }, input.content),
+    };
+  });
+}
+
+export async function archiveHostedArtifact(ownerIdValue: string, artifactId: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    return tx
+      .update(hostedArtifacts)
+      .set({ archived: true, updatedAt: new Date() })
+      .where(and(eq(hostedArtifacts.ownerId, ownerId), eq(hostedArtifacts.id, artifactId)))
+      .returning();
   });
 }
 

@@ -232,6 +232,55 @@ export const hostedEvidenceUsages = pgTable(
   ],
 );
 
+export const hostedArtifacts = pgTable(
+  "hosted_artifacts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    roleFamily: text("role_family").default("").notNull(),
+    archived: boolean("archived").default(false).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("hosted_artifacts_id_owner_idx").on(table.id, table.ownerId),
+    index("hosted_artifacts_owner_kind_idx").on(table.ownerId, table.kind),
+    check("hosted_artifacts_kind_check", sql`${table.kind} in ('resume', 'cover-letter')`),
+  ],
+);
+
+export const hostedArtifactVersions = pgTable(
+  "hosted_artifact_versions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    artifactId: uuid("artifact_id").notNull(),
+    version: integer("version").notNull(),
+    sourceJobId: uuid("source_job_id"),
+    content: jsonb("content").$type<Record<string, unknown>>().default({}).notNull(),
+    evidenceIds: uuid("evidence_ids").array().default(sql`'{}'::uuid[]`).notNull(),
+    changeSummary: text("change_summary").default("").notNull(),
+    restoredFromVersionId: uuid("restored_from_version_id"),
+    contentSha256: text("content_sha256").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("hosted_artifact_versions_artifact_version_idx").on(table.artifactId, table.version),
+    uniqueIndex("hosted_artifact_versions_id_owner_idx").on(table.id, table.ownerId),
+    index("hosted_artifact_versions_owner_artifact_idx").on(table.ownerId, table.artifactId),
+    foreignKey({
+      columns: [table.artifactId, table.ownerId],
+      foreignColumns: [hostedArtifacts.id, hostedArtifacts.ownerId],
+      name: "hosted_artifact_versions_artifact_owner_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const hostedJobs = pgTable(
   "hosted_jobs",
   {

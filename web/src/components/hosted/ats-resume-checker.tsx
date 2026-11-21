@@ -23,7 +23,7 @@ type Analysis = {
   lowConfidenceReason: string | null;
   guardrail: string;
 };
-type Result = { job: Job; resume: { id: string; name: string; filename: string }; analysis: Analysis; privacy: string };
+type Result = { job: Job; resume: { id: string; name: string; filename: string }; analysis: Analysis; report: { id: string; createdAt: string }; privacy: string };
 
 function KeywordGroup({ title, values, tone }: { title: string; values: string[]; tone: "good" | "warn" | "bad" }) {
   return <section className={styles.keywordGroup}><div><strong>{title}</strong><span>{values.length}</span></div>{values.length ? <p>{values.map((value) => <em className={styles[tone]} key={value}>{value}</em>)}</p> : <small>None detected</small>}</section>;
@@ -77,7 +77,7 @@ export function AtsResumeChecker() {
   }
 
   return <div className={styles.page}>
-    <header className={styles.heading}><div><p>ATS resume check</p><h1 className={instrumentSerif.className}>See what parsers can observe. Keep every claim true.</h1><span>Compare one private resume with one saved job using deterministic checks—no model call, no proprietary “pass” prediction, and no automatic keyword injection.</span></div><aside><ShieldCheck /><div><strong>Private by design</strong><small>Processed on demand · report not stored</small></div></aside></header>
+    <header className={styles.heading}><div><p>ATS resume check</p><h1 className={instrumentSerif.className}>See what parsers can observe. Keep every claim true.</h1><span>Compare one private resume with one saved job using deterministic checks—no model call, no proprietary “pass” prediction, and no automatic keyword injection.</span></div><aside><ShieldCheck /><div><strong>Private by design</strong><small>Extracted text discarded · diagnostic fingerprint stored</small></div></aside></header>
 
     <section className={styles.workspace}>
       <form className={styles.controls} onSubmit={runCheck}>
@@ -109,7 +109,7 @@ export function AtsResumeChecker() {
             <KeywordGroup title="Not found" values={result.analysis.keywordCoverage.missing} tone="bad" />
           </div>
           <div className={styles.guardrail}><ShieldCheck /><p><strong>Truthfulness guardrail</strong>{result.analysis.guardrail}</p></div>
-          <p className={styles.privacy}>{result.privacy}</p>
+          <p className={styles.privacy}>{result.privacy} Report {result.report.id.slice(0, 8)} is available to the application packet.</p>
         </>}
       </section>
     </section>

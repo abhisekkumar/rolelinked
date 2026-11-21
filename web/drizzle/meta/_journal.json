@@ -64,6 +64,13 @@
       "when": 1795232715778,
       "tag": "0008_brave_spitfire",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795233306919,
+      "tag": "0009_yellow_reavers",
+      "breakpoints": true
     }
   ]
 }

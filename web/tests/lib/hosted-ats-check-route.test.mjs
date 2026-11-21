@@ -13,8 +13,12 @@ test("ATS checker authenticates and scopes both selected records to the current 
   assert.match(route, /getHostedResumeVersion\(ownerId, parsed\.data\.resumeId\)/);
 });
 
-test("ATS checker reads a private object on demand without persisting extracted text", () => {
+test("ATS checker discards extracted text while retaining a reproducible diagnostic", () => {
   assert.match(route, /readPrivateObject/);
-  assert.doesNotMatch(route, /insert|updateHosted|createHosted/i);
-  assert.match(route, /report are not persisted/i);
+  assert.match(route, /saveHostedAtsReport/);
+  assert.match(route, /resumeSha256: resumeRecord\.version\.sha256/);
+  assert.match(route, /Extracted resume text is discarded/);
+  const saveStart = route.indexOf("const report = await saveHostedAtsReport");
+  const savedPayload = route.slice(saveStart, route.indexOf("return NextResponse.json", saveStart));
+  assert.doesNotMatch(savedPayload, /extracted\.text/);
 });

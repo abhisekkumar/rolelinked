@@ -9,6 +9,7 @@ import {
   documents,
   hostedArtifacts,
   hostedArtifactVersions,
+  hostedAtsReports,
   hostedApplicationPacketEvents,
   hostedApplicationPackets,
   hostedAutomationSchedules,
@@ -34,6 +35,7 @@ import {
   hostedDiscoveryStaleCutoffs,
 } from "@/lib/hosted/discovery-run-health.mjs";
 import { artifactContentSha256, artifactEvidenceIds, artifactVersionDiff } from "@/lib/hosted/artifact-version-core.mjs";
+import { packetApprovalFingerprint, packetApprovalPayload } from "@/lib/hosted/packet-approval-core.mjs";
 
 export type SearchProfileInput = {
   targetRoles: string[];
@@ -1085,11 +1087,43 @@ function assertPacketStatus(value: string): HostedPacketStatus {
 export type HostedApplicationPacketInput = {
   jobId: string;
   resumeId?: string | null;
+  resumeArtifactVersionId?: string | null;
+  coverLetterVersionId?: string | null;
+  atsReportId?: string | null;
   evidenceIds?: string[];
   content: Record<string, unknown>;
   reviewNotes?: string | null;
   status?: HostedPacketStatus;
 };
+
+export async function saveHostedAtsReport(ownerIdValue: string, input: {
+  jobId: string;
+  resumeId: string;
+  resumeVersionId: string;
+  resumeSha256: string;
+  analysis: Record<string, unknown>;
+  jobSnapshot: Record<string, unknown>;
+}) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [job] = await tx.select({ id: hostedJobs.id }).from(hostedJobs).where(and(eq(hostedJobs.ownerId, ownerId), eq(hostedJobs.id, input.jobId))).limit(1);
+    const [resume] = await tx.select({ id: resumeVersions.id }).from(resumeVersions).where(and(eq(resumeVersions.ownerId, ownerId), eq(resumeVersions.id, input.resumeVersionId), eq(resumeVersions.resumeId, input.resumeId))).limit(1);
+    if (!job || !resume) throw new Error("The ATS report sources were not found in this workspace.");
+    const [report] = await tx.insert(hostedAtsReports).values({ ownerId, ...input }).returning();
+    return report;
+  });
+}
+
+export async function listHostedAtsReports(ownerIdValue: string, jobId?: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    return tx.select().from(hostedAtsReports).where(and(eq(hostedAtsReports.ownerId, ownerId), jobId ? eq(hostedAtsReports.jobId, jobId) : sql`true`)).orderBy(desc(hostedAtsReports.createdAt));
+  });
+}
 
 export async function saveHostedApplicationPacket(
   ownerIdValue: string,
@@ -1114,6 +1148,38 @@ export async function saveHostedApplicationPacket(
         .where(and(eq(resumes.ownerId, ownerId), eq(resumes.id, input.resumeId)))
         .limit(1);
       if (!resume) throw new Error("Resume not found in this workspace.");
+    }
+
+    async function requireArtifactVersion(versionId: string | null | undefined, expectedKind: "resume" | "cover-letter") {
+      if (!versionId) return null;
+      const [record] = await tx
+        .select({ version: hostedArtifactVersions, artifact: hostedArtifacts })
+        .from(hostedArtifactVersions)
+        .innerJoin(hostedArtifacts, and(
+          eq(hostedArtifacts.id, hostedArtifactVersions.artifactId),
+          eq(hostedArtifacts.ownerId, ownerId),
+        ))
+        .where(and(eq(hostedArtifactVersions.ownerId, ownerId), eq(hostedArtifactVersions.id, versionId)))
+        .limit(1);
+      if (!record || record.artifact.kind !== expectedKind) {
+        throw new Error(`The selected ${expectedKind} version was not found in this workspace.`);
+      }
+      return record;
+    }
+    const resumeArtifact = await requireArtifactVersion(input.resumeArtifactVersionId, "resume");
+    const coverLetter = await requireArtifactVersion(input.coverLetterVersionId, "cover-letter");
+    let atsReport = null;
+    if (input.atsReportId) {
+      [atsReport] = await tx
+        .select()
+        .from(hostedAtsReports)
+        .where(and(
+          eq(hostedAtsReports.ownerId, ownerId),
+          eq(hostedAtsReports.id, input.atsReportId),
+          eq(hostedAtsReports.jobId, job.id),
+        ))
+        .limit(1);
+      if (!atsReport) throw new Error("The selected ATS report was not found for this job.");
     }
 
     const evidenceIds = [...new Set(input.evidenceIds || [])];
@@ -1141,6 +1207,9 @@ export async function saveHostedApplicationPacket(
     if (status === "approved" && evidenceIds.length === 0) {
       throw new Error("Pin at least one verified evidence item before approving this packet.");
     }
+    if (status === "approved" && (!resumeArtifact || !coverLetter || !atsReport)) {
+      throw new Error("Approved packets require an exact resume version, cover-letter version, and ATS report.");
+    }
     const sourceSnapshot = {
       job: {
         id: job.id,
@@ -1153,15 +1222,46 @@ export async function saveHostedApplicationPacket(
         compensationMaximum: job.compensationMaximum,
         sponsorshipSignal: job.sponsorshipSignal,
       },
+      resumeArtifact: resumeArtifact ? {
+        artifactId: resumeArtifact.artifact.id,
+        versionId: resumeArtifact.version.id,
+        version: resumeArtifact.version.version,
+        contentSha256: resumeArtifact.version.contentSha256,
+      } : null,
+      coverLetter: coverLetter ? {
+        artifactId: coverLetter.artifact.id,
+        versionId: coverLetter.version.id,
+        version: coverLetter.version.version,
+        contentSha256: coverLetter.version.contentSha256,
+      } : null,
+      atsReport: atsReport ? {
+        id: atsReport.id,
+        resumeSha256: atsReport.resumeSha256,
+        createdAt: atsReport.createdAt.toISOString(),
+      } : null,
       capturedAt: new Date().toISOString(),
     };
     const now = new Date();
+    const approvalFingerprint = status === "approved" ? packetApprovalFingerprint(packetApprovalPayload({
+      jobId: job.id,
+      resumeId: input.resumeId || null,
+      resumeArtifactVersionId: input.resumeArtifactVersionId || null,
+      coverLetterVersionId: input.coverLetterVersionId || null,
+      atsReportId: input.atsReportId || null,
+      evidenceIds,
+      sourceSnapshot,
+      content: input.content,
+    })) : null;
     const [packet] = await tx
       .insert(hostedApplicationPackets)
       .values({
         ownerId,
         jobId: job.id,
         resumeId: input.resumeId || null,
+        resumeArtifactVersionId: input.resumeArtifactVersionId || null,
+        coverLetterVersionId: input.coverLetterVersionId || null,
+        atsReportId: input.atsReportId || null,
+        approvalFingerprint,
         status,
         sourceSnapshot,
         content: input.content,
@@ -1172,6 +1272,10 @@ export async function saveHostedApplicationPacket(
         target: [hostedApplicationPackets.ownerId, hostedApplicationPackets.jobId],
         set: {
           resumeId: input.resumeId || null,
+          resumeArtifactVersionId: input.resumeArtifactVersionId || null,
+          coverLetterVersionId: input.coverLetterVersionId || null,
+          atsReportId: input.atsReportId || null,
+          approvalFingerprint,
           status,
           sourceSnapshot,
           content: input.content,
@@ -1201,7 +1305,15 @@ export async function saveHostedApplicationPacket(
       ownerId,
       packetId: packet.id,
       event: status,
-      details: { jobId: job.id, resumeId: input.resumeId || null, evidenceCount: evidenceIds.length },
+      details: {
+        jobId: job.id,
+        resumeId: input.resumeId || null,
+        resumeArtifactVersionId: input.resumeArtifactVersionId || null,
+        coverLetterVersionId: input.coverLetterVersionId || null,
+        atsReportId: input.atsReportId || null,
+        approvalFingerprint,
+        evidenceCount: evidenceIds.length,
+      },
     });
     return packet;
   });

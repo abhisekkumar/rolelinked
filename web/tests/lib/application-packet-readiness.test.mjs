@@ -6,6 +6,9 @@ import { applicationPacketReadiness } from "../../src/lib/hosted/application-pac
 const base = {
   jobId: "job_1",
   resumeId: "resume_1",
+  resumeArtifactVersionId: "resume_version_1",
+  coverLetterVersionId: "cover_version_1",
+  atsReportId: "ats_1",
   evidenceIds: ["evidence_1"],
   professionalSummary: "Source-backed summary",
   coverNote: "",
@@ -13,7 +16,7 @@ const base = {
 };
 
 test("a complete packet is ready without requiring invented optional answers", () => {
-  assert.deepEqual(applicationPacketReadiness(base).map((check) => check.done), [true, true, true, true, true]);
+  assert.deepEqual(applicationPacketReadiness(base).map((check) => check.done), [true, true, true, true, true, true, true, true]);
 });
 
 test("a pasted question with no answer is visibly incomplete", () => {

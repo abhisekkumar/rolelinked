@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ packet }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to save the application packet.";
-    const status = message === "Authentication required." ? 401 : /not found/i.test(message) ? 404 : 500;
+    const status = message === "Authentication required." ? 401 : /not found/i.test(message) ? 404 : /require|verified|pin|selected/i.test(message) ? 400 : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }

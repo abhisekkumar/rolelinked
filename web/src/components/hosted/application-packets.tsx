@@ -11,7 +11,9 @@ import styles from "./career-operations.module.css";
 type Job = { id: string; company: string; title: string; url: string; location: string; status: string; descriptionExcerpt: string };
 type Resume = { id: string; name: string; roleType: string };
 type Evidence = { id: string; title: string; statement: string; category: string; verificationState: "verified" | "corrected"; usageCount: number };
-type Packet = { packet: { id: string; jobId: string; resumeId: string | null; status: string; content: Record<string, unknown>; reviewNotes: string | null; updatedAt: string }; job: Job; resumeName: string | null; evidenceIds: string[] };
+type ArtifactOption = { artifact: { id: string; title: string; kind: "resume" | "cover-letter"; roleFamily: string }; latestVersion: { id: string; version: number; sourceJobId: string | null } };
+type AtsReport = { id: string; jobId: string; resumeId: string; createdAt: string; analysis: { compatibilityPct?: number } };
+type Packet = { packet: { id: string; jobId: string; resumeId: string | null; resumeArtifactVersionId: string | null; coverLetterVersionId: string | null; atsReportId: string | null; approvalFingerprint: string | null; status: string; content: Record<string, unknown>; reviewNotes: string | null; updatedAt: string }; job: Job; resumeName: string | null; evidenceIds: string[] };
 const EMPTY_ANSWER = { question: "", answer: "" };
 const QUEUE_STATES = ["all", "draft", "review", "approved", "archived"] as const;
 
@@ -20,10 +22,16 @@ export function ApplicationPackets() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
+  const [resumeArtifacts, setResumeArtifacts] = useState<ArtifactOption[]>([]);
+  const [coverLetters, setCoverLetters] = useState<ArtifactOption[]>([]);
+  const [atsReports, setAtsReports] = useState<AtsReport[]>([]);
   const [packets, setPackets] = useState<Packet[]>([]);
   const [selectedPacket, setSelectedPacket] = useState<Packet | null>(null);
   const [chosenJobId, setChosenJobId] = useState(searchParams.get("jobId") || "");
   const [resumeId, setResumeId] = useState("");
+  const [resumeArtifactVersionId, setResumeArtifactVersionId] = useState("");
+  const [coverLetterVersionId, setCoverLetterVersionId] = useState("");
+  const [atsReportId, setAtsReportId] = useState("");
   const [selectedEvidenceIds, setSelectedEvidenceIds] = useState<string[]>([]);
   const [professionalSummary, setProfessionalSummary] = useState("");
   const [coverNote, setCoverNote] = useState("");
@@ -35,18 +43,24 @@ export function ApplicationPackets() {
   const [message, setMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [jobsResponse, resumesResponse, evidenceResponse, packetsResponse] = await Promise.all([
+    const [jobsResponse, resumesResponse, evidenceResponse, packetsResponse, resumeArtifactsResponse, coverLettersResponse, atsReportsResponse] = await Promise.all([
       fetch("/api/hosted/jobs?view=pipeline", { cache: "no-store" }),
       fetch("/api/hosted/resumes", { cache: "no-store" }),
       fetch("/api/hosted/evidence", { cache: "no-store" }),
       fetch("/api/hosted/application-packets", { cache: "no-store" }),
+      fetch("/api/hosted/artifacts?kind=resume", { cache: "no-store" }),
+      fetch("/api/hosted/artifacts?kind=cover-letter", { cache: "no-store" }),
+      fetch("/api/hosted/ats-check", { cache: "no-store" }),
     ]);
-    const [jobsBody, resumesBody, evidenceBody, packetsBody] = await Promise.all([
-      jobsResponse.json().catch(() => ({})), resumesResponse.json().catch(() => ({})), evidenceResponse.json().catch(() => ({})), packetsResponse.json().catch(() => ({})),
+    const [jobsBody, resumesBody, evidenceBody, packetsBody, resumeArtifactsBody, coverLettersBody, atsReportsBody] = await Promise.all([
+      jobsResponse.json().catch(() => ({})), resumesResponse.json().catch(() => ({})), evidenceResponse.json().catch(() => ({})), packetsResponse.json().catch(() => ({})), resumeArtifactsResponse.json().catch(() => ({})), coverLettersResponse.json().catch(() => ({})), atsReportsResponse.json().catch(() => ({})),
     ]);
     if (jobsResponse.ok) setJobs(jobsBody.jobs || []);
     if (resumesResponse.ok) setResumes(resumesBody.resumes || []);
     if (evidenceResponse.ok) setEvidence((evidenceBody.evidence || []).filter((item: Evidence) => item.verificationState === "verified" || item.verificationState === "corrected"));
+    if (resumeArtifactsResponse.ok) setResumeArtifacts(resumeArtifactsBody.artifacts || []);
+    if (coverLettersResponse.ok) setCoverLetters(coverLettersBody.artifacts || []);
+    if (atsReportsResponse.ok) setAtsReports(atsReportsBody.reports || []);
     if (packetsResponse.ok) setPackets(packetsBody.packets || []);
     else setMessage(packetsBody.error || "Application packets are unavailable.");
   }, []);
@@ -62,6 +76,9 @@ export function ApplicationPackets() {
       ? (content.answers as ApplicationAnswerDraft[]).filter((answer) => answer && typeof answer.question === "string")
       : [];
     setResumeId(selectedPacket?.packet.resumeId || "");
+    setResumeArtifactVersionId(selectedPacket?.packet.resumeArtifactVersionId || "");
+    setCoverLetterVersionId(selectedPacket?.packet.coverLetterVersionId || "");
+    setAtsReportId(selectedPacket?.packet.atsReportId || "");
     setSelectedEvidenceIds(selectedPacket?.evidenceIds || []);
     setProfessionalSummary(String(content.professionalSummary || ""));
     setCoverNote(String(content.coverNote || ""));
@@ -73,11 +90,14 @@ export function ApplicationPackets() {
   const checks = useMemo(() => applicationPacketReadiness({
     jobId: selectedJobId,
     resumeId,
+    resumeArtifactVersionId,
+    coverLetterVersionId,
+    atsReportId,
     evidenceIds: selectedEvidenceIds,
     professionalSummary,
     coverNote,
     answers: answerRows,
-  }), [answerRows, coverNote, professionalSummary, resumeId, selectedEvidenceIds, selectedJobId]);
+  }), [answerRows, atsReportId, coverLetterVersionId, coverNote, professionalSummary, resumeArtifactVersionId, resumeId, selectedEvidenceIds, selectedJobId]);
   const completion = checks.filter((item) => item.done).length;
   const visiblePackets = queueState === "all" ? packets : packets.filter((item) => item.packet.status === queueState);
 
@@ -116,6 +136,9 @@ export function ApplicationPackets() {
     const payload = {
       jobId: selectedJobId,
       resumeId: resumeId || null,
+      resumeArtifactVersionId: resumeArtifactVersionId || null,
+      coverLetterVersionId: coverLetterVersionId || null,
+      atsReportId: atsReportId || null,
       evidenceIds: selectedEvidenceIds,
       status: packetStatus,
       reviewNotes: reviewNotes || null,
@@ -141,7 +164,7 @@ export function ApplicationPackets() {
     {message && <p className={styles.message} aria-live="polite">{message}</p>}
     <section className={styles.packetGrid}>
       <form className={`${styles.card} ${styles.form} ${styles.packetForm}`} onSubmit={save}>
-        <div className={styles.packetSectionHead}><span>01</span><div><small>Source</small><h2>{selectedPacket ? "Review exact packet" : "Create a packet"}</h2></div><strong>{completion}/5 ready</strong></div>
+        <div className={styles.packetSectionHead}><span>01</span><div><small>Source</small><h2>{selectedPacket ? "Review exact packet" : "Create a packet"}</h2></div><strong>{completion}/{checks.length} ready</strong></div>
         <label>Role<select value={selectedJobId} onChange={(event) => chooseJob(event.target.value)} required>{jobs.map((job) => <option key={job.id} value={job.id}>{job.company} — {job.title}</option>)}</select></label>
         {selectedJob && <div className={styles.snapshot}>
           <div className={styles.snapshotHead}><div><strong>{selectedJob.company} · {selectedJob.title}</strong><p>{selectedJob.location || "Location not stated"}</p></div><a href={selectedJob.url} target="_blank" rel="noreferrer">Open original <ExternalLink /></a></div>
@@ -151,6 +174,10 @@ export function ApplicationPackets() {
         <div className={styles.packetSectionHead}><span>02</span><div><small>Evidence</small><h3>Choose the approved source</h3></div></div>
         <label>Resume<select value={resumeId} onChange={(event) => setResumeId(event.target.value)}><option value="">No resume selected</option>{resumes.map((resume) => <option key={resume.id} value={resume.id}>{resume.name} — {resume.roleType}</option>)}</select></label>
         {selectedJobId && resumeId && <a className={styles.atsCheckLink} href={`/app/ats-check?jobId=${encodeURIComponent(selectedJobId)}&resumeId=${encodeURIComponent(resumeId)}`}><FileScan /> Check this resume against the role</a>}
+        <label>Exact resume studio version<select value={resumeArtifactVersionId} onChange={(event) => setResumeArtifactVersionId(event.target.value)}><option value="">No immutable version pinned</option>{resumeArtifacts.map((item) => <option key={item.latestVersion.id} value={item.latestVersion.id}>{item.artifact.title} · v{item.latestVersion.version}</option>)}</select></label>
+        <label>Exact cover-letter version<select value={coverLetterVersionId} onChange={(event) => setCoverLetterVersionId(event.target.value)}><option value="">No cover letter pinned</option>{coverLetters.filter((item) => !item.latestVersion.sourceJobId || item.latestVersion.sourceJobId === selectedJobId).map((item) => <option key={item.latestVersion.id} value={item.latestVersion.id}>{item.artifact.title} · v{item.latestVersion.version}</option>)}</select></label>
+        <label>Stored ATS diagnostic<select value={atsReportId} onChange={(event) => setAtsReportId(event.target.value)}><option value="">No report pinned</option>{atsReports.filter((report) => report.jobId === selectedJobId).map((report) => <option key={report.id} value={report.id}>{report.analysis?.compatibilityPct ?? "—"}% observable fit · {new Date(report.createdAt).toLocaleDateString()}</option>)}</select></label>
+        {(!resumeArtifacts.length || !coverLetters.length) && <a className={styles.atsCheckLink} href="/app/studio"><FileCheck2 /> Create immutable document versions in Studio</a>}
         <fieldset className={styles.evidencePicker}>
           <legend>Verified claims to pin</legend>
           <p>The exact evidence selection is recorded with this packet. Unreviewed and narrative-only claims are intentionally unavailable.</p>
@@ -176,7 +203,7 @@ export function ApplicationPackets() {
       <section className={`${styles.card} ${styles.library} ${styles.packetQueue}`}>
         <div className={styles.libraryHead}><div><small>Approval queue</small><h2>{packets.length} packet{packets.length === 1 ? "" : "s"}</h2><p>Internal preparation only</p></div><PackageCheck /></div>
         <div className={styles.queueFilters}>{QUEUE_STATES.map((state) => <button type="button" className={queueState === state ? styles.activeFilter : ""} onClick={() => setQueueState(state)} key={state}>{state === "all" ? "All" : state}</button>)}</div>
-        {visiblePackets.length === 0 ? <div className={styles.empty}>{packets.length ? "No packets in this state." : "No packets yet. Select a role and preserve a truthful draft."}</div> : visiblePackets.map((item) => <article className={styles.packetItem} key={item.packet.id}><div className={styles.packetTop}><div><strong>{item.job.company} · {item.job.title}</strong><p>{item.resumeName ? `Resume: ${item.resumeName}` : "No resume selected"} · {item.evidenceIds.length} verified claim{item.evidenceIds.length === 1 ? "" : "s"}</p></div><span className={styles.status}>{item.packet.status}</span></div><p>Updated {new Date(item.packet.updatedAt).toLocaleString()}</p><button type="button" onClick={() => { setChosenJobId(item.packet.jobId); setSelectedPacket(item); window.scrollTo({ top: 0, behavior: "smooth" }); }}><FileCheck2 /> Open exact packet</button></article>)}
+        {visiblePackets.length === 0 ? <div className={styles.empty}>{packets.length ? "No packets in this state." : "No packets yet. Select a role and preserve a truthful draft."}</div> : visiblePackets.map((item) => <article className={styles.packetItem} key={item.packet.id}><div className={styles.packetTop}><div><strong>{item.job.company} · {item.job.title}</strong><p>{item.resumeName ? `Source: ${item.resumeName}` : "No uploaded source"} · {item.evidenceIds.length} verified claim{item.evidenceIds.length === 1 ? "" : "s"}</p></div><span className={styles.status}>{item.packet.status}</span></div><p>{item.packet.approvalFingerprint ? `Approval fingerprint ${item.packet.approvalFingerprint.slice(0, 12)}…` : "Not approved or missing exact-version inputs"}</p><p>Updated {new Date(item.packet.updatedAt).toLocaleString()}</p><button type="button" onClick={() => { setChosenJobId(item.packet.jobId); setSelectedPacket(item); window.scrollTo({ top: 0, behavior: "smooth" }); }}><FileCheck2 /> Open exact packet</button></article>)}
       </section>
     </section>
   </div>;

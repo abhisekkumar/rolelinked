@@ -36,6 +36,6 @@ export async function PUT(request: Request, context: Context) {
     return NextResponse.json({ packet: await saveHostedApplicationPacket(ownerId, parsed.data) });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to update the application packet.";
-    return NextResponse.json({ error: message }, { status: message === "Authentication required." ? 401 : 500 });
+    return NextResponse.json({ error: message }, { status: message === "Authentication required." ? 401 : /require|verified|pin|selected/i.test(message) ? 400 : 500 });
   }
 }

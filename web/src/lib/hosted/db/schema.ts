@@ -397,6 +397,37 @@ export const hostedDiscoverySourceChecks = pgTable(
   ],
 );
 
+export const hostedAtsReports = pgTable(
+  "hosted_ats_reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id").notNull(),
+    resumeId: uuid("resume_id").notNull(),
+    resumeVersionId: uuid("resume_version_id").notNull(),
+    analysis: jsonb("analysis").$type<Record<string, unknown>>().default({}).notNull(),
+    jobSnapshot: jsonb("job_snapshot").$type<Record<string, unknown>>().default({}).notNull(),
+    resumeSha256: text("resume_sha256").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("hosted_ats_reports_id_owner_idx").on(table.id, table.ownerId),
+    index("hosted_ats_reports_owner_job_idx").on(table.ownerId, table.jobId),
+    foreignKey({
+      columns: [table.jobId, table.ownerId],
+      foreignColumns: [hostedJobs.id, hostedJobs.ownerId],
+      name: "hosted_ats_reports_job_owner_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.resumeId, table.ownerId],
+      foreignColumns: [resumes.id, resumes.ownerId],
+      name: "hosted_ats_reports_resume_owner_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const hostedApplicationPackets = pgTable(
   "hosted_application_packets",
   {
@@ -406,6 +437,10 @@ export const hostedApplicationPackets = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     jobId: uuid("job_id").notNull(),
     resumeId: uuid("resume_id"),
+    resumeArtifactVersionId: uuid("resume_artifact_version_id"),
+    coverLetterVersionId: uuid("cover_letter_version_id"),
+    atsReportId: uuid("ats_report_id"),
+    approvalFingerprint: text("approval_fingerprint"),
     status: text("status").default("draft").notNull(),
     sourceSnapshot: jsonb("source_snapshot")
       .$type<Record<string, unknown>>()
@@ -431,6 +466,21 @@ export const hostedApplicationPackets = pgTable(
       columns: [table.resumeId, table.ownerId],
       foreignColumns: [resumes.id, resumes.ownerId],
       name: "hosted_application_packets_resume_owner_fk",
+    }).onDelete("no action"),
+    foreignKey({
+      columns: [table.resumeArtifactVersionId, table.ownerId],
+      foreignColumns: [hostedArtifactVersions.id, hostedArtifactVersions.ownerId],
+      name: "hosted_application_packets_resume_artifact_owner_fk",
+    }).onDelete("no action"),
+    foreignKey({
+      columns: [table.coverLetterVersionId, table.ownerId],
+      foreignColumns: [hostedArtifactVersions.id, hostedArtifactVersions.ownerId],
+      name: "hosted_application_packets_cover_letter_owner_fk",
+    }).onDelete("no action"),
+    foreignKey({
+      columns: [table.atsReportId, table.ownerId],
+      foreignColumns: [hostedAtsReports.id, hostedAtsReports.ownerId],
+      name: "hosted_application_packets_ats_report_owner_fk",
     }).onDelete("no action"),
     index("hosted_application_packets_owner_status_idx").on(table.ownerId, table.status),
   ],

@@ -25,12 +25,12 @@ CREATE TABLE "hosted_artifacts" (
 );
 --> statement-breakpoint
 ALTER TABLE "hosted_artifact_versions" ADD CONSTRAINT "hosted_artifact_versions_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "hosted_artifacts_id_owner_idx" ON "hosted_artifacts" USING btree ("id","owner_id");--> statement-breakpoint
 ALTER TABLE "hosted_artifact_versions" ADD CONSTRAINT "hosted_artifact_versions_artifact_owner_fk" FOREIGN KEY ("artifact_id","owner_id") REFERENCES "public"."hosted_artifacts"("id","owner_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "hosted_artifacts" ADD CONSTRAINT "hosted_artifacts_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "hosted_artifact_versions_artifact_version_idx" ON "hosted_artifact_versions" USING btree ("artifact_id","version");--> statement-breakpoint
 CREATE UNIQUE INDEX "hosted_artifact_versions_id_owner_idx" ON "hosted_artifact_versions" USING btree ("id","owner_id");--> statement-breakpoint
 CREATE INDEX "hosted_artifact_versions_owner_artifact_idx" ON "hosted_artifact_versions" USING btree ("owner_id","artifact_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "hosted_artifacts_id_owner_idx" ON "hosted_artifacts" USING btree ("id","owner_id");--> statement-breakpoint
 CREATE INDEX "hosted_artifacts_owner_kind_idx" ON "hosted_artifacts" USING btree ("owner_id","kind");
 --> statement-breakpoint
 ALTER TABLE "hosted_artifacts" ENABLE ROW LEVEL SECURITY;

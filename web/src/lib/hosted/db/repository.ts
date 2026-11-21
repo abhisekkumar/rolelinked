@@ -223,6 +223,45 @@ export async function getHostedResumeVersion(ownerIdValue: string, resumeId: str
   });
 }
 
+export async function listHostedResumeStorageKeys(ownerIdValue: string, resumeId: string) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    return tx.select({ storageKey: resumeVersions.storageKey }).from(resumeVersions).where(and(
+      eq(resumeVersions.ownerId, ownerId),
+      eq(resumeVersions.resumeId, resumeId),
+    ));
+  });
+}
+
+export async function updateHostedResumeMetadata(ownerIdValue: string, resumeId: string, input: { name: string; roleType: string }) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [resume] = await tx.update(resumes).set({ ...input, updatedAt: new Date() }).where(and(
+      eq(resumes.ownerId, ownerId),
+      eq(resumes.id, resumeId),
+    )).returning();
+    return resume || null;
+  });
+}
+
+export async function appendHostedResumeVersion(ownerIdValue: string, resumeId: string, input: Omit<CreateResumeInput, "name" | "roleType">) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [resume] = await tx.select({ id: resumes.id }).from(resumes).where(and(eq(resumes.ownerId, ownerId), eq(resumes.id, resumeId))).limit(1);
+    if (!resume) return null;
+    const [latest] = await tx.select({ version: resumeVersions.version }).from(resumeVersions).where(and(eq(resumeVersions.ownerId, ownerId), eq(resumeVersions.resumeId, resumeId))).orderBy(desc(resumeVersions.version)).limit(1);
+    const [version] = await tx.insert(resumeVersions).values({ ownerId, resumeId, version: (latest?.version || 0) + 1, ...input }).returning();
+    await tx.update(resumes).set({ updatedAt: new Date() }).where(and(eq(resumes.ownerId, ownerId), eq(resumes.id, resumeId)));
+    return version;
+  });
+}
+
 export async function deleteHostedResumeRecord(ownerIdValue: string, resumeId: string) {
   const ownerId = requireTenantId(ownerIdValue);
   const db = getHostedDatabase();
@@ -283,6 +322,19 @@ export async function getHostedDocument(ownerIdValue: string, documentId: string
       .where(and(eq(documents.ownerId, ownerId), eq(documents.id, documentId)))
       .limit(1);
     return document ?? null;
+  });
+}
+
+export async function updateHostedDocument(ownerIdValue: string, documentId: string, input: Partial<CreateDocumentInput>) {
+  const ownerId = requireTenantId(ownerIdValue);
+  const db = getHostedDatabase();
+  return db.transaction(async (tx) => {
+    await setTenant(tx, ownerId);
+    const [document] = await tx.update(documents).set({ ...input, updatedAt: new Date() }).where(and(
+      eq(documents.ownerId, ownerId),
+      eq(documents.id, documentId),
+    )).returning();
+    return document || null;
   });
 }
 

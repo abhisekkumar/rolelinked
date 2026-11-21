@@ -9,6 +9,8 @@ import {
   FileLock2,
   FileText,
   LoaderCircle,
+  Pencil,
+  RefreshCw,
   ShieldCheck,
   Trash2,
   Upload,
@@ -100,6 +102,33 @@ export function ResumeLibrary({
     }
   };
 
+  const rename = async (resume: ResumeRow) => {
+    const name = window.prompt("Resume name", resume.name)?.trim();
+    if (!name) return;
+    const roleType = window.prompt("Best used for", resume.roleType)?.trim();
+    if (!roleType) return;
+    const response = await fetch(`/api/hosted/resumes/${resume.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, roleType }) });
+    const body = await response.json().catch(() => ({}));
+    setMessage(response.ok ? "Resume details updated." : body.error || "The resume could not be renamed.");
+    if (response.ok) await load();
+  };
+
+  const replace = (resume: ResumeRow) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,.docx,.txt,.md,.tex";
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file || !window.confirm(`Create a new immutable version of ${resume.name} from ${file.name}?`)) return;
+      const form = new FormData(); form.set("file", file);
+      const response = await fetch(`/api/hosted/resumes/${resume.id}`, { method: "PATCH", body: form });
+      const body = await response.json().catch(() => ({}));
+      setMessage(response.ok ? "New resume version stored privately." : body.error || "The resume could not be replaced.");
+      if (response.ok) await load();
+    };
+    input.click();
+  };
+
   return (
     <div className={styles.page}>
       {fromOnboarding && <section className={styles.onboardingReturn}><div><strong>Resume setup</strong><span>Upload or review your sources, then return to finish your search preferences.</span></div><Link href={`/onboarding?step=resumes${editingOnboarding ? "&mode=edit" : ""}`}><ArrowLeft /> Return to setup</Link></section>}
@@ -149,6 +178,8 @@ export function ResumeLibrary({
                   <div className={styles.actions}>
                     {PREVIEWABLE_RESUME_TYPES.has(resume.contentType) && <a href={`/api/hosted/resumes/${resume.id}/preview`} target="_blank" rel="noreferrer"><Eye /> Preview</a>}
                     <a href={`/api/hosted/resumes/${resume.id}/download`}><Download /> Download</a>
+                    <button type="button" onClick={() => rename(resume)}><Pencil /> Rename</button>
+                    <button type="button" onClick={() => replace(resume)}><RefreshCw /> New version</button>
                     <button type="button" onClick={() => remove(resume)}><Trash2 /> Delete</button>
                   </div>
                 </article>

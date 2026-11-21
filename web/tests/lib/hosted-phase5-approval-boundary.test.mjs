@@ -8,15 +8,24 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const apiRoot = path.join(here, "../../src/app/api/hosted");
 const phase5Roots = ["application-packets", "artifacts", "ats-check", "drafting", "evidence"];
 
-function files(root) {
-  return readdirSync(root).flatMap((entry) => {
-    const target = path.join(root, entry);
-    return statSync(target).isDirectory() ? files(target) : [target];
-  });
+function collectFiles(root) {
+  const pending = [root];
+  const collected = [];
+
+  while (pending.length > 0) {
+    const directory = pending.pop();
+    for (const entry of readdirSync(directory)) {
+      const target = path.join(directory, entry);
+      if (statSync(target).isDirectory()) pending.push(target);
+      else collected.push(target);
+    }
+  }
+
+  return collected;
 }
 
 test("Phase 5 routes expose no external submission, messaging, or authorization action", () => {
-  const sources = phase5Roots.flatMap((name) => files(path.join(apiRoot, name))).map((file) => ({ file, source: readFileSync(file, "utf8") }));
+  const sources = phase5Roots.flatMap((name) => collectFiles(path.join(apiRoot, name))).map((file) => ({ file, source: readFileSync(file, "utf8") }));
   assert.ok(sources.length >= 8, "expected the complete Phase 5 route surface");
   for (const { file, source } of sources) {
     assert.doesNotMatch(source, /\b(?:submitApplication|sendMessage|authorizeExternal|dispatchApplication|applyToJob)\s*\(/, file);

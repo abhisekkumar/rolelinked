@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BadgeCheck, Download, FileDiff, FilePlus2, History, RotateCcw, Save, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, BadgeCheck, Download, FileDiff, FilePlus2, History, RotateCcw, Save, ShieldCheck, Trash2 } from "lucide-react";
 
 import { instrumentSerif } from "@/lib/fonts";
 import styles from "./artifact-studio.module.css";
@@ -78,6 +78,16 @@ export function ArtifactStudio() {
     setContent((current) => ({ ...current, blocks: current.blocks.map((block) => block.id === id ? { ...block, ...patch } : block) }));
   }
 
+  function moveBlock(index: number, direction: -1 | 1) {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= content.blocks.length) return;
+    setContent((current) => {
+      const blocks = [...current.blocks];
+      [blocks[index], blocks[nextIndex]] = [blocks[nextIndex], blocks[index]];
+      return { ...current, blocks };
+    });
+  }
+
   function restore(version: Version) {
     setContent(version.content); setSourceJobId(version.sourceJobId || ""); setRestoredFromVersionId(version.id);
     setChangeSummary(`Restored from version ${version.version}`); setMessage(`Version ${version.version} loaded as a new draft. Save to preserve the restore.`);
@@ -111,7 +121,7 @@ export function ArtifactStudio() {
       <section className={styles.editor}>
         <div className={styles.metadata}><label>Title<input value={title} onChange={(event) => setTitle(event.target.value)} /></label><label>{kind === "resume" ? "Role family" : "Target role"}<input value={roleFamily} onChange={(event) => setRoleFamily(event.target.value)} placeholder="Data engineering" /></label>{kind === "cover-letter" && <label>Archived job source<select value={sourceJobId} onChange={(event) => setSourceJobId(event.target.value)}><option value="">Choose a saved role</option>{jobs.map((job) => <option value={job.id} key={job.id}>{job.company} — {job.title}</option>)}</select></label>}</div>
         <div className={styles.identity}>{kind === "resume" ? <><input value={content.name} onChange={(event) => setContent({ ...content, name: event.target.value })} placeholder="Name" /><input value={content.headline} onChange={(event) => setContent({ ...content, headline: event.target.value })} placeholder="Professional headline" /><input value={content.contactLine} onChange={(event) => setContent({ ...content, contactLine: event.target.value })} placeholder="Email · phone · location · portfolio" /></> : <><input value={content.recipient} onChange={(event) => setContent({ ...content, recipient: event.target.value })} placeholder="Hiring team or recipient" /><input value={content.greeting} onChange={(event) => setContent({ ...content, greeting: event.target.value })} placeholder="Dear hiring team," /></>}</div>
-        <div className={styles.blocks}>{content.blocks.map((block) => <article key={block.id}><div><select value={block.type} onChange={(event) => updateBlock(block.id, { type: event.target.value as Block["type"] })}><option value="summary">Summary</option><option value="experience">Experience</option><option value="project">Project</option><option value="skill">Skill</option><option value="education">Education</option><option value="certification">Certification</option><option value="achievement">Achievement</option><option value="paragraph">Paragraph</option></select><button onClick={() => setContent((current) => ({ ...current, blocks: current.blocks.filter((item) => item.id !== block.id) }))} title="Remove block"><Trash2 /></button></div><input value={block.heading} onChange={(event) => updateBlock(block.id, { heading: event.target.value })} placeholder="Heading" /><textarea value={block.text} onChange={(event) => updateBlock(block.id, { text: event.target.value })} /><small><BadgeCheck /> Sourced from {block.evidenceIds.map((id) => evidence.find((item) => item.id === id)?.title || "verified evidence").join(", ")}</small></article>)}</div>
+        <div className={styles.blocks}>{content.blocks.map((block, index) => <article key={block.id}><div><select value={block.type} onChange={(event) => updateBlock(block.id, { type: event.target.value as Block["type"] })}><option value="summary">Summary</option><option value="experience">Experience</option><option value="project">Project</option><option value="skill">Skill</option><option value="education">Education</option><option value="certification">Certification</option><option value="achievement">Achievement</option><option value="paragraph">Paragraph</option></select><span><button disabled={index === 0} onClick={() => moveBlock(index, -1)} title="Move block up"><ArrowUp /></button><button disabled={index === content.blocks.length - 1} onClick={() => moveBlock(index, 1)} title="Move block down"><ArrowDown /></button><button onClick={() => setContent((current) => ({ ...current, blocks: current.blocks.filter((item) => item.id !== block.id) }))} title="Remove block"><Trash2 /></button></span></div><input value={block.heading} onChange={(event) => updateBlock(block.id, { heading: event.target.value })} placeholder="Heading" /><textarea value={block.text} onChange={(event) => updateBlock(block.id, { text: event.target.value })} /><small><BadgeCheck /> Sourced from {block.evidenceIds.map((id) => evidence.find((item) => item.id === id)?.title || "verified evidence").join(", ")}</small></article>)}</div>
         {kind === "cover-letter" && <input className={styles.closing} value={content.closing} onChange={(event) => setContent({ ...content, closing: event.target.value })} placeholder="Sincerely, Your name" />}
         <label className={styles.change}>Version note<input value={changeSummary} onChange={(event) => setChangeSummary(event.target.value)} placeholder="What changed in this version?" /></label><button className={styles.save} onClick={save} disabled={busy}><Save />{busy ? "Saving version…" : "Save immutable version"}</button>{artifactId && <div className={styles.exports}><a href={`/api/hosted/artifacts/${artifactId}/export?format=html`} target="_blank" rel="noreferrer"><Download /> Print / PDF</a><a href={`/api/hosted/artifacts/${artifactId}/export?format=word`}><Download /> Word</a><a href={`/api/hosted/artifacts/${artifactId}/export?format=markdown`}><Download /> Markdown</a><a href={`/api/hosted/artifacts/${artifactId}/export?format=tex`}><Download /> TeX</a></div>}
       </section>

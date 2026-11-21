@@ -1289,7 +1289,12 @@ export async function saveHostedApplicationPacket(
           .select({
             id: hostedEvidenceItems.id,
             title: hostedEvidenceItems.title,
+            statement: hostedEvidenceItems.statement,
             verificationState: hostedEvidenceItems.verificationState,
+            sourceType: hostedEvidenceItems.sourceType,
+            sourceLabel: hostedEvidenceItems.sourceLabel,
+            sourceExcerpt: hostedEvidenceItems.sourceExcerpt,
+            updatedAt: hostedEvidenceItems.updatedAt,
           })
           .from(hostedEvidenceItems)
           .where(and(
@@ -1340,6 +1345,26 @@ export async function saveHostedApplicationPacket(
         resumeSha256: atsReport.resumeSha256,
         createdAt: atsReport.createdAt.toISOString(),
       } : null,
+      evidence: evidenceIds.map((id) => {
+        const item = evidence.find((candidate) => candidate.id === id)!;
+        return {
+          id: item.id,
+          title: item.title,
+          statement: item.statement,
+          verificationState: item.verificationState,
+          sourceType: item.sourceType,
+          sourceLabel: item.sourceLabel,
+          sourceExcerpt: item.sourceExcerpt,
+          evidenceFingerprint: artifactContentSha256({
+            statement: item.statement,
+            verificationState: item.verificationState,
+            sourceType: item.sourceType,
+            sourceLabel: item.sourceLabel,
+            sourceExcerpt: item.sourceExcerpt,
+          }),
+          updatedAt: item.updatedAt.toISOString(),
+        };
+      }),
       capturedAt: new Date().toISOString(),
     };
     const now = new Date();

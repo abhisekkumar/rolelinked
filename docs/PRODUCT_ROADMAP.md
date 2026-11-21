@@ -75,6 +75,9 @@ replacing it.
 
 ## Phase 5 — Evidence and document studio
 
+**Completed November 20, 2026.** The detailed verification record is in
+[PHASE5_EVIDENCE_DOCUMENT_STUDIO.md](PHASE5_EVIDENCE_DOCUMENT_STUDIO.md).
+
 Phase 5 makes candidate evidence the center of the product and turns document
 creation into a transparent, editable, versioned workflow.
 

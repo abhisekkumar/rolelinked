@@ -8,9 +8,9 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(path.join(here, "../../src/components/marketing/marketing-header.tsx"), "utf8");
 
 test("the public header exposes distinct sign-in and account-creation paths", () => {
-  assert.match(source, /href="\/sign-in\?redirect_url=%2Fapp%2Ftoday"/);
+  assert.match(source, /href="\/sign-in\?redirect_url=%2Fauth%2Fcontinue"/);
   assert.match(source, />Sign in<\/Link>/);
-  assert.match(source, /"\/sign-up\?redirect_url=%2Fonboarding"/);
+  assert.match(source, /"\/sign-up\?redirect_url=%2Fauth%2Fcontinue"/);
   assert.match(source, /Start free/);
 });
 

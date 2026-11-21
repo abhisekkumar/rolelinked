@@ -21,7 +21,7 @@ const loader = `
 register(`data:text/javascript,${encodeURIComponent(loader)}`, hostedRoot);
 assert.equal(existsSync(new URL("ats-catalog.ts", hostedRoot)), true);
 
-const { HOSTED_SOURCE_CATALOG, PUBLIC_FEEDS } = await import("../../src/lib/hosted/source-catalog.ts");
+const { HOSTED_SOURCE_CATALOG, MANUAL_SOURCE_DIRECTORY, PUBLIC_FEEDS } = await import("../../src/lib/hosted/source-catalog.ts");
 const { normalizeCareerOpsJob } = await import("../../src/lib/hosted/source-normalize.ts");
 
 test("hosted discovery exposes the broad public board catalog", () => {
@@ -51,10 +51,37 @@ test("the public catalog does not claim a LinkedIn integration", () => {
 
 test("hosted company sources span five public ATS providers", () => {
   const ats = HOSTED_SOURCE_CATALOG.filter((source) => source.kind === "company-ats");
-  assert.ok(ats.length >= 17);
+  assert.ok(ats.length >= 60);
   assert.deepEqual(new Set(ats.map((source) => source.provider)), new Set(["greenhouse", "lever", "ashby", "workable", "icims"]));
+  assert.ok(ats.filter((source) => source.provider === "greenhouse").length >= 25, "Greenhouse network is too small");
+  assert.ok(ats.filter((source) => source.provider === "ashby").length >= 25, "Ashby network is too small");
   for (const required of ["Hugging Face", "Toggl", "Doist", "Semios", "Nortal"])
     assert.ok(ats.some((source) => source.name === required), `${required} is missing`);
+});
+
+test("India coverage is explicit across automated company feeds and manual portals", () => {
+  const indiaFeeds = HOSTED_SOURCE_CATALOG.filter((source) => /india/i.test(source.coverage));
+  assert.ok(indiaFeeds.length >= 7);
+  for (const required of ["HackerRank", "DoorDash India", "AlphaSense India", "Acceldata"])
+    assert.ok(indiaFeeds.some((source) => source.name === required), `${required} India feed is missing`);
+
+  const indiaPortals = MANUAL_SOURCE_DIRECTORY.filter((source) => /india/i.test(source.coverage));
+  for (const required of ["Naukri", "foundit", "Instahyre", "Cutshort", "Hirist", "Indeed India"])
+    assert.ok(indiaPortals.some((source) => source.name === required), `${required} manual portal is missing`);
+
+  const indiaOnlyFeeds = indiaFeeds.filter((source) => !/(united states|global)/i.test(source.coverage));
+  assert.ok(indiaOnlyFeeds.length >= 3);
+  assert.ok(indiaOnlyFeeds.every((source) => source.defaultEnabled === false), "India-only feeds should be opt-in for new US-first workspaces");
+});
+
+test("credentialed or unsupported portals are honest manual links, never fake scan toggles", () => {
+  for (const required of ["Glassdoor", "Wellfound"])
+    assert.ok(MANUAL_SOURCE_DIRECTORY.some((source) => source.name === required), `${required} directory link is missing`);
+  assert.equal(HOSTED_SOURCE_CATALOG.some((source) => /glassdoor|naukri|instahyre|cutshort/i.test(source.name)), false);
+  for (const source of MANUAL_SOURCE_DIRECTORY) {
+    assert.equal(source.kind, "manual-board");
+    assert.doesNotThrow(() => new URL(source.url));
+  }
 });
 
 test("new ATS providers retain their provider label on normalized jobs", () => {

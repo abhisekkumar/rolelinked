@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Bot, CalendarClock, Cloud, Database, HardDriveUpload, KeyRound, ShieldCheck } from "lucide-react";
 
 import { instrumentSerif } from "@/lib/fonts";
@@ -26,8 +25,8 @@ export function IntegrationsView({ readiness }: { readiness: Readiness }) {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <div><p className={styles.eyebrow}>Workspace infrastructure</p><h1 className={instrumentSerif.className}>Connect the services behind RoleLinked.</h1></div>
-        <p>This page reports configuration only—never values. Secrets stay in local or hosting-provider environment settings and are never written to Git.</p>
+        <div><p className={styles.eyebrow}>Admin infrastructure</p><h1 className={instrumentSerif.className}>Operate the services behind RoleLinked.</h1></div>
+        <p>This admin-only page reports configuration status—never secret values. Regular workspace users cannot see it or change deployment services.</p>
       </header>
 
       <div className={styles.notice}><ShieldCheck /> The hosted app and local Career Ops dashboard remain separate. Connecting an account does not upload the files in your local checkout.</div>
@@ -48,7 +47,7 @@ export function IntegrationsView({ readiness }: { readiness: Readiness }) {
         </article>
       </section>
 
-      <section className={styles.next}><div><small>Next safe milestone</small><strong>Apply the Neon migrations, then verify isolation with two Clerk test accounts.</strong></div><Link href="/onboarding">Review onboarding</Link></section>
+      <section className={styles.next}><div><small>Admin boundary</small><strong>Manage credentials in Clerk, Neon, Vercel, and Upstash—not inside a user workspace.</strong></div></section>
     </div>
   );
 }

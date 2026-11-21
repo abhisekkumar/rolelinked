@@ -11,8 +11,10 @@ import {
   ChevronDown,
   Compass,
   FileStack,
+  FilePenLine,
   FileText,
   LayoutDashboard,
+  LibraryBig,
   ListChecks,
   MessageSquareText,
   Radar,
@@ -36,6 +38,8 @@ const navItems = [
   { label: "Pipeline", href: "/app/pipeline", icon: ListChecks, ready: true },
   { label: "Applications", href: "/app/applications", icon: BriefcaseBusiness, ready: true },
   { label: "Resumes", href: "/app/resumes", icon: FileText, ready: true },
+  { label: "Studio", href: "/app/studio", icon: FilePenLine, ready: true },
+  { label: "Evidence", href: "/app/evidence", icon: LibraryBig, ready: true },
   { label: "ATS Check", href: "/app/ats-check", icon: ScanSearch, ready: true },
   { label: "Documents", href: "/app/documents", icon: FileStack, ready: true },
   { label: "Interviews", href: "/app/interviews", icon: MessageSquareText, ready: false },
@@ -43,17 +47,19 @@ const navItems = [
   { label: "Automations", href: "/app/automations", icon: CalendarClock, ready: true },
   { label: "Sources", href: "/app/sources", icon: Radar, ready: true },
   { label: "Analytics", href: "/app/analytics", icon: BarChart3, ready: false },
-  { label: "Integrations", href: "/app/integrations", icon: Unplug, ready: true },
+  { label: "Admin", href: "/app/integrations", icon: Unplug, ready: true, adminOnly: true },
 ];
 
 export function HostedAppShell({
   children,
   identity,
   onboardingComplete,
+  isAdmin,
 }: {
   children: React.ReactNode;
   identity: HostedIdentity;
   onboardingComplete: boolean;
+  isAdmin: boolean;
 }) {
   const pathname = usePathname();
 
@@ -68,7 +74,7 @@ export function HostedAppShell({
         <div className={styles.previewBadge}><Sparkles /> {identity.mode === "preview" ? "Hosted workspace preview" : "Private account workspace"}</div>
 
         <nav className={styles.sideNav} aria-label="Workspace navigation">
-          {navItems.map(({ label, href, icon: Icon, ready }) => {
+          {navItems.filter((item) => !item.adminOnly || isAdmin).map(({ label, href, icon: Icon, ready }) => {
             const item = (
               <>
                 <Icon aria-hidden="true" />
@@ -91,7 +97,7 @@ export function HostedAppShell({
 
         <div className={styles.sidebarFooter}>
           <ThemeToggle className={styles.sidebarTheme} showLabel />
-          <Link href="/onboarding"><Settings /> {onboardingComplete ? "Edit preferences" : "Continue setup"}</Link>
+          <Link href={onboardingComplete ? "/onboarding?mode=edit" : "/onboarding"}><Settings /> {onboardingComplete ? "Edit preferences" : "Continue setup"}</Link>
           <div className={styles.accountCard}>
             {identity.mode === "clerk" ? <UserButton /> : <span>RL</span>}
             <div><strong>{identity.label}</strong><small>{identity.detail}</small></div>
@@ -110,7 +116,7 @@ export function HostedAppShell({
           <div className={styles.topbarActions}>
             <span className={styles.safeBadge}>{identity.mode === "preview" ? "Sample workspace" : "Private workspace"}</span>
             <ThemeToggle className={styles.topbarTheme} />
-            <Link href="/onboarding">{onboardingComplete ? "Edit preferences" : "Continue setup"}</Link>
+            <Link href={onboardingComplete ? "/onboarding?mode=edit" : "/onboarding"}>{onboardingComplete ? "Edit preferences" : "Continue setup"}</Link>
           </div>
         </header>
 

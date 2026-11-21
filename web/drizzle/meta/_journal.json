@@ -50,6 +50,34 @@
       "when": 1794720529877,
       "tag": "0006_mushy_thor_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795068886995,
+      "tag": "0007_melodic_mac_gargan",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795232715778,
+      "tag": "0008_brave_spitfire",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795233306919,
+      "tag": "0009_yellow_reavers",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795233685616,
+      "tag": "0010_superb_nebula",
+      "breakpoints": true
     }
   ]
 }

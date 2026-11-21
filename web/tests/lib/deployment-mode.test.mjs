@@ -66,6 +66,7 @@ test("hosted app routes use their own tenant-safe shell", () => {
 
 test("hosted auth and API namespaces are explicit", () => {
   assert.equal(isHostedAuthPath("/sign-in"), true);
+  assert.equal(isHostedAuthPath("/auth/continue"), true);
   assert.equal(isHostedAuthPath("/sign-up/sso-callback"), true);
   assert.equal(isHostedAuthPath("/__clerk/v1/client"), true);
   assert.equal(isHostedApiPath("/api/hosted/workspace"), true);
@@ -75,6 +76,7 @@ test("hosted auth and API namespaces are explicit", () => {
   assert.equal(isHostedProtectedPath("/api/logo"), false);
   assert.equal(isHostedProtectedPath("/app/today"), true);
   assert.equal(isHostedProtectedPath("/onboarding"), true);
+  assert.equal(isHostedProtectedPath("/auth/continue"), true);
   assert.equal(isHostedProtectedPath("/api/hosted/workspace"), true);
   assert.equal(isHostedProtectedPath("/app/discover"), true);
   assert.equal(isHostedProtectedPath("/app/pipeline"), true);

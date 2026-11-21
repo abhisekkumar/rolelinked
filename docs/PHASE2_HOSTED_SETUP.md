@@ -20,6 +20,7 @@ Never paste their values into GitHub issues, commits, or documentation.
 
 ```text
 ROLELINKED_DEPLOYMENT_MODE=hosted
+ROLELINKED_ADMIN_USER_IDS=user_...
 NEXT_PUBLIC_APP_URL=https://rolelinked.com
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
 CLERK_SECRET_KEY=...
@@ -40,6 +41,15 @@ QSTASH_NEXT_SIGNING_KEY=...
 # Optional when the QStash project uses US East:
 QSTASH_URL=https://qstash-us-east-1.upstash.io
 ```
+
+`ROLELINKED_ADMIN_USER_IDS` is an optional comma-separated Clerk user-id
+allowlist for the admin infrastructure page. A Clerk user with
+`publicMetadata.role` set to `admin` is also accepted when no allowlist is
+configured. The allowlist is preferred in production because it avoids a Clerk
+Backend API lookup on each page request. Regular users do not see the Admin
+navigation item and direct requests to `/app/integrations` redirect back to
+their workspace. This page reports backend readiness; it is not a user-facing
+connected-apps screen.
 
 Connecting Neon and a Private Blob store through the Vercel project normally
 injects the database and Blob configuration. New Private Blob connections use

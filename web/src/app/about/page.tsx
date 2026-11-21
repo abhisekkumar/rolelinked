@@ -9,7 +9,7 @@ import styles from "../legal/legal.module.css";
 export const metadata: Metadata = {
   title: "About RoleLinked",
   description:
-    "Why RoleLinked exists, how it works, and the project that helped inspire it.",
+    "Why RoleLinked exists and the operating principles behind the product.",
 };
 
 export default async function AboutPage() {
@@ -44,31 +44,12 @@ export default async function AboutPage() {
         </section>
 
         <section>
-          <h2>Project lineage</h2>
-          <p>
-            RoleLinked is an independent MIT-licensed derivative of Career Ops.
-            We preserve attribution to the original work while developing a
-            distinct product, hosted architecture, onboarding experience, and
-            interaction model. RoleLinked is not endorsed by or affiliated with
-            the Career Ops maintainers.
-          </p>
-          <div className={styles.linkGrid}>
-            <a href="https://github.com/abhisekkumar/rolelinked">
-              RoleLinked source ↗
-            </a>
-            <a href="https://github.com/career-ops-hq/career-ops">
-              Career Ops upstream ↗
-            </a>
-          </div>
-        </section>
-
-        <section>
           <h2>Our operating promise</h2>
           <ul>
             <li>No invented qualifications or experience.</li>
             <li>No automatic application submission or outbound messaging.</li>
-            <li>No credentials or private resumes committed to public source.</li>
-            <li>Clear boundaries between public product code and candidate data.</li>
+            <li>Private credentials and resumes remain isolated to the account.</li>
+            <li>Clear boundaries between product systems and candidate data.</li>
           </ul>
         </section>
       </article>

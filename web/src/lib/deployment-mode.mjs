@@ -34,7 +34,7 @@ export function isHostedAppPath(pathname) {
 }
 
 export function isHostedAuthPath(pathname) {
-  return ["/sign-in", "/sign-up", "/__clerk"].some(
+  return ["/sign-in", "/sign-up", "/__clerk", "/auth/continue"].some(
     (basePath) => pathname === basePath || pathname.startsWith(`${basePath}/`),
   );
 }
@@ -60,7 +60,8 @@ export function isHostedSignedWorkerPath(pathname) {
 }
 
 export function isHostedProtectedPath(pathname) {
-  return isHostedAppPath(pathname)
+  return pathname === "/auth/continue"
+    || isHostedAppPath(pathname)
     || (isHostedApiPath(pathname) && !isHostedSignedWorkerPath(pathname));
 }
 

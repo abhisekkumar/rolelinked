@@ -5,6 +5,7 @@ import {
   saveHostedSourcePreference,
 } from "@/lib/hosted/db/repository";
 import { HOSTED_SOURCE_CATALOG } from "@/lib/hosted/discovery-sources";
+import { MANUAL_SOURCE_DIRECTORY } from "@/lib/hosted/source-catalog";
 import { requireHostedUserId } from "@/lib/hosted/identity";
 import { hostedSourcePreferenceSchema } from "@/lib/hosted/profile-schema";
 
@@ -15,6 +16,7 @@ export async function GET() {
     const byKey = new Map(preferences.map((item) => [item.sourceKey, item.enabled]));
     return NextResponse.json({
       sources: HOSTED_SOURCE_CATALOG.map((item) => ({ ...item, enabled: byKey.get(item.key) ?? item.defaultEnabled })),
+      manualSources: MANUAL_SOURCE_DIRECTORY,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to load sources.";
